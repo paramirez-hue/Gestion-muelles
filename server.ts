@@ -10,44 +10,24 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
-const DB_PATH = path.join(__dirname, 'db.json');
-
-// Google Sheets Config (You will need to set these in .env)
-const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
-
-const auth = new GoogleAuth({
-  keyFile: path.join(__dirname, 'google-credentials.json'), // You need to upload this file
-  scopes: 'https://www.googleapis.com/auth/spreadsheets',
-});
-
-const sheets = google.sheets({ version: 'v4', auth });
-
-async function appendToSheet(range: string, values: any[]) {
-  if (!SPREADSHEET_ID) return;
-  try {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: range,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [values] },
-    });
-  } catch (err) {
-    console.error('Error appending to sheet:', err);
-  }
-}
+const DB_PATH = path.join(process.cwd(), 'db.json');
 
 app.use(express.json());
 
-// ... (código existente hasta la inicialización de la base de datos)
-if (!fs.existsSync(DB_PATH)) {
-  fs.writeFileSync(DB_PATH, JSON.stringify({ conductores: [], muelles: [], empresas: [], registros: [], config: { logo: null } }));
-}
+console.log('Database path:', DB_PATH);
 
-// ... (lectura y escritura de DB)
+// Initialize DB if not exists
+if (!fs.existsSync(DB_PATH)) {
+  console.log('Creating new database file...');
+  fs.writeFileSync(DB_PATH, JSON.stringify({ conductores: [], muelles: [], empresas: [], registros: [], config: { logo: null } }));
+} else {
+  console.log('Database file found.');
+}
 
 const readDb = () => {
   try {
-    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const content = fs.readFileSync(DB_PATH, 'utf-8');
+    const data = JSON.parse(content);
     return { 
       conductores: data.conductores || [], 
       muelles: data.muelles || [], 
@@ -56,6 +36,7 @@ const readDb = () => {
       config: data.config || { logo: null }
     };
   } catch (e) {
+    console.error('Error reading database:', e);
     return { conductores: [], muelles: [], empresas: [], registros: [], config: { logo: null } };
   }
 };
