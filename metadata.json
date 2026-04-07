@@ -1,0 +1,5 @@
+{
+  "name": "Sistema de Gestión de Muelles Colcafé",
+  "description": "Aplicación para gestionar el ingreso de conductores y la ocupación de muelles en planta.",
+  "requestFramePermissions": []
+}
