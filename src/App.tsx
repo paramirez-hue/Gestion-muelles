@@ -240,11 +240,15 @@ function AdminApp() {
                   <button onClick={handleAddEmpresa} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
                 </div>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                  {empresas.map((e: any) => (
-                    <div key={e.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
-                      <span className="font-medium text-gray-700">{e.nombre}</span>
-                    </div>
-                  ))}
+                  {empresas.length === 0 ? (
+                    <p className="text-center py-10 text-gray-400 text-sm italic">No hay empresas registradas</p>
+                  ) : (
+                    empresas.map((e: any) => (
+                      <div key={e.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
+                        <span className="font-medium text-gray-700">{e.nombre}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -255,14 +259,18 @@ function AdminApp() {
                   <button onClick={handleAddMuelle} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
                 </div>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                  {muelles.map((m: any) => (
-                    <div key={m.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
-                      <span className="font-medium text-gray-700">{m.nombre}</span>
-                      <button onClick={() => deleteMuelle(m.id)} className="text-gray-400 hover:text-red-600 transition-colors">
-                        <Delete size={18} />
-                      </button>
-                    </div>
-                  ))}
+                  {muelles.length === 0 ? (
+                    <p className="text-center py-10 text-gray-400 text-sm italic">No hay muelles registrados</p>
+                  ) : (
+                    muelles.map((m: any) => (
+                      <div key={m.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
+                        <span className="font-medium text-gray-700">{m.nombre}</span>
+                        <button onClick={() => deleteMuelle(m.id)} className="text-gray-400 hover:text-red-600 transition-colors">
+                          <Delete size={18} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

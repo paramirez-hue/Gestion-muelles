@@ -82,16 +82,26 @@ app.post('/api/conductores', (req, res) => {
 });
 
 // Empresas
-app.get('/api/empresas', (req, res) => res.json(readDb().empresas));
+app.get('/api/empresas', (req, res) => {
+  const db = readDb();
+  console.log('API: GET /api/empresas - Count:', db.empresas.length);
+  res.json(db.empresas);
+});
 app.post('/api/empresas', (req, res) => {
   const db = readDb();
-  db.empresas.push({ nombre: req.body.nombre, id: Date.now() });
+  const nueva = { nombre: req.body.nombre, id: Date.now() };
+  db.empresas.push(nueva);
   writeDb(db);
+  console.log('API: POST /api/empresas - Added:', nueva.nombre);
   res.json({ success: true });
 });
 
 // Muelles
-app.get('/api/muelles', (req, res) => res.json(readDb().muelles));
+app.get('/api/muelles', (req, res) => {
+  const db = readDb();
+  console.log('API: GET /api/muelles - Count:', db.muelles.length);
+  res.json(db.muelles);
+});
 app.post('/api/muelles', (req, res) => {
   const db = readDb();
   db.muelles.push({ nombre: req.body.nombre, id: Date.now() });
