@@ -370,9 +370,14 @@ function KioskApp() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="w-full bg-red-600 p-6 flex items-center gap-8 shadow-lg">
-        {logo && <img src={logo} alt="Logo" className="h-16 bg-white p-2 rounded-2xl shadow-sm" />}
-        <h1 className="text-white text-3xl font-black uppercase tracking-tighter">Sistema de Gestión de Muelles</h1>
+      <header className="w-full bg-red-600 p-6 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-8">
+          {logo && <img src={logo} alt="Logo" className="h-16 bg-white p-2 rounded-2xl shadow-sm" />}
+          <h1 className="text-white text-3xl font-black uppercase tracking-tighter">Sistema de Gestión de Muelles</h1>
+        </div>
+        <Link to="/admin" className="text-red-500 hover:text-white opacity-10 hover:opacity-100 transition-all p-2">
+          <Settings size={24} />
+        </Link>
       </header>
 
       <main className="flex-grow flex flex-col p-8">
