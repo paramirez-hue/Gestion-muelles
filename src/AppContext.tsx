@@ -1,61 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { 
-  db, auth, onSnapshot, collection, query, where, addDoc, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, getDocs, getDoc 
-} from './firebase';
 
 const AppContext = createContext<any>(null);
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [registros, setRegistros] = useState<any[]>([]);
@@ -64,144 +10,136 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [empresas, setEmpresas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [logo, setLogo] = useState<string | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(true); // Always ready in local mode
+
+  const fetchData = async () => {
+    try {
+      const [regRes, condRes, muelleRes, empRes, configRes] = await Promise.all([
+        fetch('/api/registros').then(res => res.json()),
+        fetch('/api/conductores').then(res => res.json()),
+        fetch('/api/muelles').then(res => res.json()),
+        fetch('/api/empresas').then(res => res.json()),
+        fetch('/api/config').then(res => res.json())
+      ]);
+      setRegistros(regRes);
+      setConductores(condRes);
+      setMuelles(muelleRes);
+      setEmpresas(empRes);
+      setLogo(configRes.logo);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      setIsAuthReady(true);
-    });
-    return () => unsubscribeAuth();
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Poll every 5 seconds for "real-time" feel
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!isAuthReady) return;
-
-    // Listen to Registros
-    const unsubRegistros = onSnapshot(collection(db, 'registros'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRegistros(data);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'registros'));
-
-    // Listen to Conductores
-    const unsubConductores = onSnapshot(collection(db, 'conductores'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setConductores(data);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'conductores'));
-
-    // Listen to Muelles
-    const unsubMuelles = onSnapshot(collection(db, 'muelles'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMuelles(data);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'muelles'));
-
-    // Listen to Empresas
-    const unsubEmpresas = onSnapshot(collection(db, 'empresas'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setEmpresas(data);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'empresas'));
-
-    // Listen to Config
-    const unsubConfig = onSnapshot(doc(db, 'config', 'global'), (snapshot) => {
-      if (snapshot.exists()) {
-        setLogo(snapshot.data().logo);
-      }
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'config/global'));
-
-    return () => {
-      unsubRegistros();
-      unsubConductores();
-      unsubMuelles();
-      unsubEmpresas();
-      unsubConfig();
-    };
-  }, [isAuthReady]);
-
-  const refreshData = () => {
-    // onSnapshot handles real-time updates, but we can keep this for compatibility if needed
-  };
+  const refreshData = () => fetchData();
 
   const finCargue = async (registroId: string) => {
     try {
-      await updateDoc(doc(db, 'registros', registroId), {
-        status: 'FIN CARGUE',
-        salida: new Date().toISOString(),
-        // Calculate time if needed, or do it in the UI
+      await fetch('/api/fin-cargue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registroId }),
       });
+      refreshData();
       toast.success('Cargue finalizado');
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `registros/${registroId}`);
+      toast.error('Error al finalizar cargue');
     }
   };
 
   const borrarRegistro = async (registroId: string) => {
     try {
-      await deleteDoc(doc(db, 'registros', registroId));
+      await fetch(`/api/registros/${registroId}`, { method: 'DELETE' });
+      refreshData();
       toast.success('Registro eliminado');
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `registros/${registroId}`);
+      toast.error('Error al eliminar registro');
     }
   };
 
   const updateLogo = async (newLogo: string) => {
     try {
-      await setDoc(doc(db, 'config', 'global'), { logo: newLogo }, { merge: true });
+      await fetch('/api/config/logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo: newLogo }),
+      });
       setLogo(newLogo);
       toast.success('Logo actualizado');
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'config/global');
+      toast.error('Error al actualizar logo');
     }
   };
 
   const addEmpresa = async (nombre: string) => {
     try {
-      await addDoc(collection(db, 'empresas'), { nombre, createdAt: serverTimestamp() });
+      await fetch('/api/empresas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre }),
+      });
+      refreshData();
       toast.success('Empresa añadida');
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'empresas');
+      toast.error('Error al añadir empresa');
     }
   };
 
   const addMuelle = async (nombre: string) => {
     try {
-      await addDoc(collection(db, 'muelles'), { nombre, createdAt: serverTimestamp() });
+      await fetch('/api/muelles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre }),
+      });
+      refreshData();
       toast.success('Muelle añadido');
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'muelles');
+      toast.error('Error al añadir muelle');
     }
   };
 
   const deleteMuelle = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'muelles', id));
+      await fetch(`/api/muelles/${id}`, { method: 'DELETE' });
+      refreshData();
       toast.success('Muelle eliminado');
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `muelles/${id}`);
+      toast.error('Error al eliminar muelle');
     }
   };
 
   const addRegistro = async (registro: any) => {
     try {
-      await addDoc(collection(db, 'registros'), {
-        ...registro,
-        fecha: new Date().toISOString(),
-        entrada: new Date().toISOString(),
-        status: 'ESPERA'
+      await fetch('/api/registro-muelle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro),
       });
+      refreshData();
       toast.success('Registro exitoso');
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'registros');
+      toast.error('Error al crear registro');
     }
   };
 
   const addConductor = async (conductor: any) => {
     try {
-      await setDoc(doc(db, 'conductores', conductor.cedula), {
-        ...conductor,
-        createdAt: serverTimestamp()
+      await fetch('/api/conductores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(conductor),
       });
+      refreshData();
       toast.success('Conductor registrado');
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `conductores/${conductor.cedula}`);
+      toast.error('Error al registrar conductor');
     }
   };
 
