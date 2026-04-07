@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Delete } from 'lucide-react';
+import { ArrowLeft, Delete, LogOut, LayoutDashboard, FileText, Settings, Monitor as MonitorIcon } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { AppProvider, useApp } from './AppContext';
 import Monitor from './Monitor';
+import { db, updateDoc, doc, auth, signInWithPopup, googleProvider } from './firebase';
 
 export default function App() {
   return (
     <AppProvider>
       <BrowserRouter>
+        <Toaster richColors position="top-center" />
         <Routes>
           <Route path="/" element={<KioskApp />} />
           <Route path="/monitor" element={<MonitorPage />} />
@@ -25,30 +27,22 @@ function MonitorPage() {
   const [showMuelleModal, setShowMuelleModal] = useState(false);
   const [registroAAsignar, setRegistroAAsignar] = useState<any>(null);
 
-  useEffect(() => {
-    const interval = setInterval(refreshData, 30000);
-    return () => clearInterval(interval);
-  }, [refreshData]);
-
   const asignarMuelle = (registroId: any) => {
     setRegistroAAsignar(registroId);
     setShowMuelleModal(true);
   };
 
   const confirmarAsignacion = async (muelle: string) => {
-    const response = await fetch('/api/asignar-muelle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ registroId: registroAAsignar, muelle }),
-    });
-    const data = await response.json();
-    if (!data.success) {
-      toast.error(data.message || 'Error al asignar muelle');
-    } else {
-      refreshData();
+    try {
+      await updateDoc(doc(db, 'registros', registroAAsignar), {
+        muelle,
+        status: 'CARGANDO'
+      });
+      setShowMuelleModal(false);
+      setRegistroAAsignar(null);
+    } catch (error) {
+      toast.error('Error al asignar muelle');
     }
-    setShowMuelleModal(false);
-    setRegistroAAsignar(null);
   };
 
   return (
@@ -76,10 +70,22 @@ function MonitorPage() {
 }
 
 function AdminApp() {
-  const { registros, conductores, muelles, empresas, refreshData, logo, updateLogo } = useApp();
+  const { registros, conductores, muelles, empresas, logo, updateLogo, addEmpresa, addMuelle, deleteMuelle } = useApp();
   const [view, setView] = useState<'menu' | 'dashboard' | 'reportes' | 'config'>('menu');
-  const [password, setPassword] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsub();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      toast.error('Error al iniciar sesión');
+    }
+  };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -92,115 +98,182 @@ function AdminApp() {
     }
   };
 
-  if (!isAuthorized) {
+  const handleAddEmpresa = () => {
+    const input = document.getElementById('nuevaEmpresaAdmin') as HTMLInputElement;
+    if (input.value) {
+      addEmpresa(input.value.toUpperCase());
+      input.value = '';
+    }
+  };
+
+  const handleAddMuelle = () => {
+    const input = document.getElementById('nuevoMuelleAdmin') as HTMLInputElement;
+    if (input.value) {
+      addMuelle(input.value.toUpperCase());
+      input.value = '';
+    }
+  };
+
+  const isAdmin = user?.email === "paramirez@serviciosnutresa.com";
+
+  if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h2 className="text-2xl font-bold mb-6 text-center">Acceso Administrativo</h2>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl mb-4 text-center text-2xl"
-            placeholder="Clave"
-          />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-6">Acceso Administrativo</h2>
+          <p className="text-gray-600 mb-8">Debes iniciar sesión con tu cuenta autorizada para acceder al panel.</p>
           <button 
-            onClick={() => password === '1234' ? setIsAuthorized(true) : toast.error('Clave incorrecta')}
-            className="w-full bg-red-600 text-white py-4 rounded-xl font-bold text-xl"
+            onClick={handleLogin}
+            className="w-full bg-red-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
           >
-            Entrar
+            Iniciar Sesión con Google
           </button>
-          <Link to="/" className="block text-center mt-4 text-gray-500 underline">Volver al Kiosko</Link>
+          {user && !isAdmin && <p className="mt-4 text-red-500 font-semibold">Esta cuenta no tiene permisos de administrador.</p>}
+          <Link to="/" className="block text-center mt-6 text-gray-500 underline">Volver al Kiosko</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-gray-900 p-4 text-white flex justify-between items-center">
-        <h1 className="text-xl font-bold">Panel de Administración</h1>
-        <button onClick={() => setIsAuthorized(false)} className="text-sm underline">Cerrar Sesión</button>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-gray-900 p-4 text-white flex justify-between items-center shadow-md">
+        <div className="flex items-center gap-4">
+          {logo && <img src={logo} alt="Logo" className="h-10 bg-white p-1 rounded" />}
+          <h1 className="text-xl font-bold tracking-tight">Panel de Administración</h1>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-gray-400">Usuario</p>
+            <p className="text-sm font-medium">{user.email}</p>
+          </div>
+          <button onClick={() => auth.signOut()} className="flex items-center gap-2 bg-gray-800 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
+            <LogOut size={18} />
+            <span className="text-sm">Salir</span>
+          </button>
+        </div>
       </header>
-      <main className="p-8">
+
+      <main className="max-w-7xl mx-auto p-8">
         {view === 'menu' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button onClick={() => setView('dashboard')} className="bg-green-600 text-white p-8 rounded-2xl font-bold text-2xl shadow-lg">Dashboard</button>
-            <button onClick={() => setView('reportes')} className="bg-purple-600 text-white p-8 rounded-2xl font-bold text-2xl shadow-lg">Reportes</button>
-            <button onClick={() => setView('config')} className="bg-gray-600 text-white p-8 rounded-2xl font-bold text-2xl shadow-lg">Configuración</button>
-            <Link to="/monitor" className="bg-blue-600 text-white p-8 rounded-2xl font-bold text-2xl shadow-lg text-center">Ver Monitor</Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <button onClick={() => setView('dashboard')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="bg-green-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+                <LayoutDashboard className="text-green-600" size={40} />
+              </div>
+              <span className="font-bold text-xl text-gray-800">Dashboard</span>
+            </button>
+            <button onClick={() => setView('reportes')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="bg-purple-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+                <FileText className="text-purple-600" size={40} />
+              </div>
+              <span className="font-bold text-xl text-gray-800">Reportes</span>
+            </button>
+            <button onClick={() => setView('config')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="bg-blue-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+                <Settings className="text-blue-600" size={40} />
+              </div>
+              <span className="font-bold text-xl text-gray-800">Configuración</span>
+            </button>
+            <Link to="/monitor" className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="bg-red-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+                <MonitorIcon className="text-red-600" size={40} />
+              </div>
+              <span className="font-bold text-xl text-gray-800">Ver Monitor</span>
+            </Link>
           </div>
         )}
+
         {view !== 'menu' && (
-          <button onClick={() => setView('menu')} className="mb-6 flex items-center gap-2 text-gray-600">
+          <button onClick={() => setView('menu')} className="mb-8 flex items-center gap-2 text-gray-600 hover:text-red-600 font-semibold transition-colors">
             <ArrowLeft size={20} /> Volver al Menú
           </button>
         )}
-        {/* Aquí irían los componentes de Dashboard, Reportes y Config que antes estaban en MainApp */}
-        {view === 'dashboard' && <div className="text-center p-20">Contenido del Dashboard (Estadísticas)</div>}
-        {view === 'reportes' && <div className="text-center p-20">Contenido de Reportes (CSV)</div>}
+
+        {view === 'dashboard' && (
+          <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+            <h2 className="text-2xl font-bold mb-8">Estadísticas de Operación</h2>
+            <div className="h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { name: 'Cargue', value: registros.filter((r: any) => r.tipo === 'Cargue').length },
+                  { name: 'Descargue', value: registros.filter((r: any) => r.tipo === 'Descargue').length }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#dc2626" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {view === 'reportes' && (
+          <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+            <h2 className="text-2xl font-bold mb-8">Reportes de Actividad</h2>
+            <p className="text-gray-500 mb-8">Aquí podrás descargar y visualizar los reportes detallados de la operación.</p>
+            {/* Implementación de tabla de reportes o descarga CSV */}
+            <div className="text-center p-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+              Próximamente: Exportación avanzada de datos
+            </div>
+          </div>
+        )}
+
         {view === 'config' && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Configuración de la Aplicación</h2>
-            
-            <div className="mb-10 p-6 bg-gray-50 rounded-2xl border border-gray-200">
-              <label className="block text-sm font-bold text-gray-700 mb-4">Logo Corporativo</label>
-              <div className="flex items-center gap-6">
-                {logo && <img src={logo} alt="Logo actual" className="h-20 w-20 object-contain bg-white p-2 rounded-lg border shadow-sm" />}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleLogoUpload} 
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100" 
-                />
+          <div className="max-w-4xl mx-auto space-y-10">
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+              <h2 className="text-xl font-bold mb-6">Identidad Visual</h2>
+              <div className="flex items-center gap-8">
+                <div className="h-32 w-32 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-center overflow-hidden">
+                  {logo ? <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain p-4" /> : <span className="text-gray-400 text-xs">Sin Logo</span>}
+                </div>
+                <div className="flex-grow">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Cambiar Logo Corporativo</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleLogoUpload} 
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100" 
+                  />
+                  <p className="mt-2 text-xs text-gray-400">Se recomienda formato PNG o JPG con fondo blanco o transparente.</p>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-lg font-bold mb-4">Empresas</h3>
-                <div className="flex gap-2 mb-4">
-                  <input id="nuevaEmpresaAdmin" className="flex-grow p-2 border rounded uppercase text-sm" placeholder="Nueva empresa" />
-                  <button onClick={() => { 
-                    const input = document.getElementById('nuevaEmpresaAdmin') as HTMLInputElement;
-                    if(input.value) {
-                      fetch('/api/empresas', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nombre: input.value.toUpperCase() }),
-                      }).then(() => { input.value = ''; refreshData(); });
-                    }
-                  }} className="bg-red-600 text-white px-4 py-2 rounded text-sm">Añadir</button>
+              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-bold mb-6">Empresas Transportadoras</h2>
+                <div className="flex gap-2 mb-6">
+                  <input id="nuevaEmpresaAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nueva empresa" />
+                  <button onClick={handleAddEmpresa} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
                 </div>
-                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                  {empresas.map(e => <li key={e.id} className="p-2 bg-gray-100 rounded text-sm flex justify-between items-center">{e.nombre}</li>)}
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold mb-4">Muelles</h3>
-                <div className="flex gap-2 mb-4">
-                  <input id="nuevoMuelleAdmin" className="flex-grow p-2 border rounded uppercase text-sm" placeholder="Nuevo muelle" />
-                  <button onClick={() => { 
-                    const input = document.getElementById('nuevoMuelleAdmin') as HTMLInputElement;
-                    if(input.value) {
-                      fetch('/api/muelles', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nombre: input.value.toUpperCase() }),
-                      }).then(() => { input.value = ''; refreshData(); });
-                    }
-                  }} className="bg-red-600 text-white px-4 py-2 rounded text-sm">Añadir</button>
-                </div>
-                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                  {muelles.map(m => (
-                    <li key={m.id} className="p-2 bg-gray-100 rounded text-sm flex justify-between items-center">
-                      {m.nombre}
-                      <button onClick={() => {
-                        fetch(`/api/muelles/${m.id}`, { method: 'DELETE' }).then(() => refreshData());
-                      }} className="text-red-600 hover:text-red-800"><Delete size={16} /></button>
-                    </li>
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                  {empresas.map((e: any) => (
+                    <div key={e.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
+                      <span className="font-medium text-gray-700">{e.nombre}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              </div>
+
+              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-bold mb-6">Muelles de Operación</h2>
+                <div className="flex gap-2 mb-6">
+                  <input id="nuevoMuelleAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nuevo muelle" />
+                  <button onClick={handleAddMuelle} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
+                </div>
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                  {muelles.map((m: any) => (
+                    <div key={m.id} className="p-4 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
+                      <span className="font-medium text-gray-700">{m.nombre}</span>
+                      <button onClick={() => deleteMuelle(m.id)} className="text-gray-400 hover:text-red-600 transition-colors">
+                        <Delete size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -211,113 +284,27 @@ function AdminApp() {
 }
 
 function KioskApp() {
-  const { logo } = useApp();
+  const { logo, conductores, empresas, addRegistro, addConductor, registros } = useApp();
   const [view, setView] = useState<'menu' | 'entrada' | 'salida'>('menu');
   const [cedula, setCedula] = useState('');
   const [conductor, setConductor] = useState<any>(null);
-  const [empresas, setEmpresas] = useState<any[]>([]);
-  const [registros, setRegistros] = useState<any[]>([]);
-  const [conductores, setConductores] = useState<any[]>([]);
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [muelles, setMuelles] = useState<any[]>([]);
-  const [muelle, setMuelle] = useState('');
-  const [filtro, setFiltro] = useState('');
 
-  useEffect(() => {
-    fetch('/api/empresas')
-      .then(res => res.json())
-      .then(data => setEmpresas(data));
-    fetch('/api/registros')
-      .then(res => res.json())
-      .then(data => setRegistros(data));
-    fetch('/api/conductores')
-      .then(res => res.json())
-      .then(data => setConductores(data));
-    fetch('/api/muelles')
-      .then(res => res.json())
-      .then(data => setMuelles(data));
-  }, []);
-
-  const [password, setPassword] = useState('');
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
-
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        // updateLogo(base64String); // We'll use this in AdminApp instead
-      };
-      reader.readAsDataURL(file);
+  const handleKeypad = (val: string) => {
+    if (val === 'DEL') setCedula(cedula.slice(0, -1));
+    else if (val === 'OK') {
+      if (view === 'salida') handleSalida();
+      else buscarConductor();
     }
+    else if (cedula.length < 10) setCedula(cedula + val);
   };
 
-  const verificarAdmin = async () => {
-    if (password === '1234') {
-      setView('admin');
-      await cargarEmpresas();
-      setShowPasswordInput(false);
-      setPassword('');
-    } else {
-      toast.error('Contraseña incorrecta');
-    }
-  };
-
-  const handleKeypad = (key: string) => {
-    if (key === 'DEL') setCedula(prev => prev.slice(0, -1));
-    else if (key === 'OK') buscarConductor();
-    else setCedula(prev => prev + key);
-  };
-
-  const registrarSalida = async (conductorId: string) => {
-    setLoading(true);
-    const response = await fetch('/api/registro-salida', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conductorId }),
-    });
-    const data = await response.json();
-    setLoading(false);
-    if (data.success) {
-      toast.success(`Salida registrada. Permanencia: ${data.permanencia} minutos.`);
-      // Refresh registros
-      fetch('/api/registros')
-        .then(res => res.json())
-        .then(data => setRegistros(data));
-      setView('menu');
-      setCedula('');
-      setConductor(null);
-    } else {
-      toast.error('No se encontró un registro activo para este conductor.');
-    }
-  };
-
-  const buscarConductor = async () => {
-    setLoading(true);
-    const response = await fetch('/api/conductores');
-    const conductores = await response.json();
-    const encontrado = conductores.find((c: any) => c.cedula === cedula);
-    setLoading(false);
-    
-    if (view === 'salida') {
-      if (encontrado) {
-        registrarSalida(encontrado.id);
-      } else {
-        toast.error('Conductor no encontrado');
-      }
-      return;
-    }
-
-    if (encontrado) {
-      // Check for active registration
-      const tieneRegistroActivo = registros.some(r => r.conductorId === encontrado.id && !r.salida);
-      if (tieneRegistroActivo) {
-        toast.error('El conductor ya tiene un registro activo sin salida.');
-        return;
-      }
-      setConductor(encontrado);
+  const buscarConductor = () => {
+    if (!cedula) return;
+    const found = conductores.find((c: any) => c.cedula === cedula);
+    if (found) {
+      setConductor(found);
       setMostrarRegistro(false);
     } else {
       setConductor(null);
@@ -325,9 +312,8 @@ function KioskApp() {
     }
   };
 
-  const registrarConductor = async (e: any) => {
+  const registrarConductor = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     const formData = new FormData(e.target as HTMLFormElement);
     const nuevoConductor = {
       cedula,
@@ -335,428 +321,178 @@ function KioskApp() {
       placa: (formData.get('placa') as string).toUpperCase(),
       empresa: (formData.get('empresa') as string).toUpperCase(),
     };
-    
-    await fetch('/api/conductores', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nuevoConductor),
-    });
-    
-    setLoading(false);
-    setConductor(nuevoConductor);
-    setMostrarRegistro(false);
-    toast.success('Conductor registrado exitosamente');
-  };
-
-  const registrarMuelle = async (tipo: 'Cargue' | 'Descargue') => {
-    if (!conductor) {
-        toast.error('Error: Conductor no encontrado');
-        return;
+    setLoading(true);
+    try {
+      await addConductor(nuevoConductor);
+      setConductor(nuevoConductor);
+      setMostrarRegistro(false);
+    } catch (error) {
+      toast.error('Error al registrar conductor');
     }
-    setLoading(true);
-    await fetch('/api/registro-muelle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conductorId: conductor.id, tipo }),
-    });
     setLoading(false);
-    toast.success('Se ha creado correctamente el registro');
-    // Refresh registros
-    fetch('/api/registros')
-      .then(res => res.json())
-      .then(data => setRegistros(data));
-    setView('menu');
-    setCedula('');
-    setConductor(null);
-    setMuelle('');
   };
 
-  const cargarEmpresas = async () => {
-    const response = await fetch('/api/empresas');
-    setEmpresas(await response.json());
-  };
-
-  const agregarEmpresa = async (nombre: string) => {
+  const registrarMuelle = async (tipo: string) => {
     setLoading(true);
-    await fetch('/api/empresas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: nombre.toUpperCase() }),
-    });
-    setLoading(false);
-    cargarEmpresas();
-  };
-
-  const exportarCSV = () => {
-    const headers = ["Fecha,Nombre,Cedula,Transportadora,Placa,F. Entrada,F. Cargue,Muelle,Status,Tiempo Espera(min),Tiempo en Muelle(min),Tiempo Total Estadia(min)"];
-    const rows = registros.map(r => {
-      const conductor = conductores.find((c: any) => c.id === r.conductorId);
-      const inicioCargue = r.inicioCargue ? new Date(r.inicioCargue).getTime() : null;
-      const entrada = new Date(r.fecha).getTime();
-      const tiempoEspera = inicioCargue ? Math.round((inicioCargue - entrada) / 60000) : 'N/A';
-      
-      return `${r.fecha},${conductor?.nombre || 'N/A'},${conductor?.cedula || 'N/A'},${conductor?.empresa || 'N/A'},${conductor?.placa || 'N/A'},${r.fecha},${r.finCargue || 'N/A'},${r.muelle || 'N/A'},${r.status || 'ESPERA'},${tiempoEspera},${r.tiempoCargue || 'N/A'},${r.permanencia || 'N/A'}`;
-    });
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "reporte_detallado_muelles.csv");
-    document.body.appendChild(link);
-    link.click();
-  };
-
-  const cargarMuelles = async () => {
-    const response = await fetch('/api/muelles');
-    setMuelles(await response.json());
-  };
-
-  const agregarMuelle = async (nombre: string) => {
-    setLoading(true);
-    await fetch('/api/muelles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: nombre.toUpperCase() }),
-    });
-    setLoading(false);
-    cargarMuelles();
-  };
-
-  const [showMuelleModal, setShowMuelleModal] = useState(false);
-  const [registroAAsignar, setRegistroAAsignar] = useState<any>(null);
-
-  const asignarMuelle = (registroId: any) => {
-    setRegistroAAsignar(registroId);
-    setShowMuelleModal(true);
-  };
-
-  const confirmarAsignacion = async (muelle: string) => {
-    const response = await fetch('/api/asignar-muelle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ registroId: registroAAsignar, muelle }),
-    });
-    
-    const data = await response.json();
-    if (!data.success) {
-        toast.error(data.message || 'Error al asignar muelle');
-        // Refresh to ensure we have the latest state
-        fetch('/api/registros')
-          .then(res => res.json())
-          .then(data => setRegistros(data));
-        setShowMuelleModal(false);
-        setRegistroAAsignar(null);
-        return;
+    try {
+      await addRegistro({
+        conductorId: conductor.cedula,
+        tipo,
+      });
+      setView('menu');
+      setCedula('');
+      setConductor(null);
+    } catch (error) {
+      toast.error('Error al registrar muelle');
     }
-    
-    // Refresh registers
-    fetch('/api/registros')
-      .then(res => res.json())
-      .then(data => setRegistros(data));
-    
-    setShowMuelleModal(false);
-    setRegistroAAsignar(null);
+    setLoading(false);
   };
 
-  const finCargue = async (registroId: any) => {
-    await fetch('/api/fin-cargue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ registroId }),
-    });
-    
-    // Refresh registers
-    fetch('/api/registros')
-      .then(res => res.json())
-      .then(data => setRegistros(data));
-    toast.success('Cargue finalizado');
-  };
-
-  const borrarRegistro = async (registroId: number) => {
-    console.log('Intentando borrar registro:', registroId);
-    
-    const response = await fetch(`/api/registros/${registroId}`, {
-      method: 'DELETE',
-    });
-    
-    const result = await response.json();
-    console.log('Resultado de borrado:', result);
-    
-    // Refresh registers
-    fetch('/api/registros')
-      .then(res => res.json())
-      .then(data => setRegistros(data));
+  const handleSalida = async () => {
+    if (!cedula) return;
+    const activeRecord = registros.find((r: any) => r.conductorId === cedula && !r.salida);
+    if (activeRecord) {
+      try {
+        await updateDoc(doc(db, 'registros', activeRecord.id), {
+          salida: new Date().toISOString(),
+          status: 'FIN CARGUE'
+        });
+        toast.success('Salida registrada');
+        setView('menu');
+        setCedula('');
+      } catch (error) {
+        toast.error('Error al registrar salida');
+      }
+    } else {
+      toast.error('No se encontró registro activo');
+    }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Toaster richColors position="top-center" duration={2000} toastOptions={{ style: { fontSize: '1.5rem', padding: '2rem' }, className: 'text-2xl p-6' }} />
-      {/* Header */}
-      <header className="w-full bg-red-600 p-4 flex items-center gap-8">
-        {logo && <img src={logo} alt="Logo" className="h-16 bg-white p-2 rounded-full" />}
-        <h1 className="text-white text-3xl font-bold uppercase tracking-wide">Sistema de Gestión de Muelles</h1>
+      <header className="w-full bg-red-600 p-6 flex items-center gap-8 shadow-lg">
+        {logo && <img src={logo} alt="Logo" className="h-16 bg-white p-2 rounded-2xl shadow-sm" />}
+        <h1 className="text-white text-3xl font-black uppercase tracking-tighter">Sistema de Gestión de Muelles</h1>
       </header>
 
-      <main className="flex-grow p-8">
+      <main className="flex-grow flex flex-col p-8">
         {view === 'menu' && (
-          <div className="flex flex-col items-center justify-center h-full gap-6">
-            <h2 className="text-4xl font-extrabold text-gray-800 mb-4">BIENVENIDOS</h2>
-            <button onClick={() => { setView('entrada'); setCedula(''); setConductor(null); }} className="w-full max-w-md bg-gray-900 text-white py-6 rounded-2xl text-2xl font-bold hover:bg-gray-800 shadow-xl">Entrada a Planta</button>
-            <button onClick={() => { setView('salida'); setCedula(''); setConductor(null); }} className="w-full max-w-md bg-white text-gray-900 py-6 rounded-2xl text-2xl font-bold border-4 border-gray-900 hover:bg-gray-50 shadow-xl">Salida de Fábrica</button>
-            
-            <div className="mt-20 text-gray-400 text-sm">
-              Modo Kiosko - Colcafé
+          <div className="flex-grow flex flex-col items-center justify-center gap-10">
+            <div className="text-center">
+              <h2 className="text-6xl font-black text-gray-900 mb-2 tracking-tighter">BIENVENIDOS</h2>
+              <p className="text-xl text-gray-500 font-medium">Seleccione la operación a realizar</p>
             </div>
-          </div>
-        )}
-
-        {view === 'admin' && (
-          <div className="max-w-4xl mx-auto">
-            <button onClick={() => setView('menu')} className="mb-6 border-2 border-gray-300 rounded-full p-2 hover:bg-gray-100">
-              <ArrowLeft className="text-red-600" size={32} />
-            </button>
-            <h2 className="text-2xl font-bold mb-6">Administración</h2>
-            <div className="flex gap-4 mb-6">
-              <button onClick={() => setView('monitor')} className="bg-blue-600 text-white py-4 px-6 rounded-xl font-bold">Monitor de Muelles</button>
-              <button onClick={() => setView('dashboard')} className="bg-green-600 text-white py-4 px-6 rounded-xl font-bold">Dashboard</button>
-              <button onClick={() => setView('reportes')} className="bg-purple-600 text-white py-4 px-6 rounded-xl font-bold">Reportes</button>
-            </div>
-            
-            <h2 className="text-2xl font-bold mb-6">Configuración</h2>
-            <div className="mb-6 p-4 bg-gray-100 rounded-xl">
-              <label className="block text-sm font-bold mb-2">Cargar Logo Corporativo</label>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700" />
-            </div>
-
-            <h2 className="text-2xl font-bold mb-6">Administración de Empresas</h2>
-            <div className="flex gap-2 mb-6">
-              <input id="nuevaEmpresa" className="flex-grow p-3 border rounded uppercase" placeholder="Nombre nueva empresa" />
-              <button onClick={() => { 
-                const input = document.getElementById('nuevaEmpresa') as HTMLInputElement;
-                if(input.value) agregarEmpresa(input.value);
-              }} disabled={loading} className="bg-red-600 text-white px-6 py-3 rounded disabled:opacity-50">Agregar</button>
-            </div>
-            <ul className="space-y-2 mb-6">
-              {empresas.map(e => <li key={`${e.id}-${e.nombre}`} className="p-3 bg-gray-100 rounded">{e.nombre}</li>)}
-            </ul>
-
-            <h2 className="text-2xl font-bold mb-6">Administración de Muelles</h2>
-            <div className="flex gap-2 mb-6">
-              <input id="nuevoMuelle" className="flex-grow p-3 border rounded uppercase" placeholder="Nombre nuevo muelle" />
-              <button onClick={() => { 
-                const input = document.getElementById('nuevoMuelle') as HTMLInputElement;
-                if(input.value) agregarMuelle(input.value);
-              }} disabled={loading} className="bg-red-600 text-white px-6 py-3 rounded disabled:opacity-50">Agregar</button>
-            </div>
-            <ul className="space-y-2">
-              {muelles.map(m => <li key={`${m.id}-${m.nombre}`} className="p-3 bg-gray-100 rounded">{m.nombre}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {view === 'monitor' && (
-          <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
-            <div className="flex items-center justify-between mb-8">
-              <button onClick={() => setView('admin')} className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors">
-                <ArrowLeft size={24} />
-                <span className="font-semibold">Volver</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+              <button 
+                onClick={() => { setView('entrada'); setCedula(''); setConductor(null); }} 
+                className="bg-gray-900 text-white p-16 rounded-3xl text-4xl font-black hover:bg-gray-800 shadow-2xl transition-all hover:scale-105 active:scale-95"
+              >
+                ENTRADA A PLANTA
               </button>
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Monitor de Muelles</h2>
-              <button onClick={exportarCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all">
-                Exportar Reporte (CSV)
+              <button 
+                onClick={() => { setView('salida'); setCedula(''); setConductor(null); }} 
+                className="bg-white text-gray-900 p-16 rounded-3xl text-4xl font-black border-8 border-gray-900 hover:bg-gray-50 shadow-2xl transition-all hover:scale-105 active:scale-95"
+              >
+                SALIDA DE FÁBRICA
               </button>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-600 uppercase font-semibold text-xs">
-                  <tr>
-                    <th className="px-6 py-4">Fecha</th>
-                    <th className="px-6 py-4">Conductor</th>
-                    <th className="px-6 py-4">Transportadora</th>
-                    <th className="px-6 py-4">Placa</th>
-                    <th className="px-6 py-4">Muelle</th>
-                    <th className="px-6 py-4">T. Muelle (min)</th>
-                    <th className="px-6 py-4 text-center">Status</th>
-                    <th className="px-6 py-4 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {registros.filter(r => !r.salida).map(r => {
-                    const conductor = conductores.find((c: any) => c.id === r.conductorId);
-                    return (
-                      <tr key={`${r.id}-${r.fecha}`} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-gray-500">{new Date(r.fecha).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{conductor?.nombre || 'N/A'}</td>
-                        <td className="px-6 py-4 text-gray-600">{conductor?.empresa || 'N/A'}</td>
-                        <td className="px-6 py-4 font-mono text-gray-700">{conductor?.placa || 'N/A'}</td>
-                        <td className="px-6 py-4 font-bold text-blue-600">{r.muelle || '-'}</td>
-                        <td className="px-6 py-4 text-gray-700">{r.tiempoCargue || '-'}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'CARGANDO' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
-                            {r.status || 'ESPERA'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center space-x-2">
-                          {r.status === 'CARGANDO' && (
-                            <button onClick={() => finCargue(r.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">FIN CARGUE</button>
-                          )}
-                          {!r.muelle && (
-                            <button onClick={() => asignarMuelle(r.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">ASIG. MUELLE</button>
-                          )}
-                          <button onClick={() => borrarRegistro(r.id)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">BORRAR</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {showMuelleModal && (
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full">
-                  <h3 className="text-xl font-bold mb-6 text-gray-900">Seleccione Muelle</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {muelles.filter(m => !registros.some(r => r.muelle && r.muelle.trim().toUpperCase() === m.nombre.trim().toUpperCase() && !r.salida)).map(m => (
-                      <button key={m.id} onClick={() => confirmarAsignacion(m.nombre)} className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold p-3 rounded-lg transition-all">{m.nombre}</button>
-                    ))}
-                  </div>
-                  <button onClick={() => setShowMuelleModal(false)} className="mt-6 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold p-3 rounded-lg transition-all">Cancelar</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {view === 'dashboard' && (
-          <div className="max-w-4xl mx-auto">
-            <button onClick={() => setView('admin')} className="mb-6 border-2 border-gray-300 rounded-full p-2 hover:bg-gray-100">
-              <ArrowLeft className="text-red-600" size={32} />
-            </button>
-            <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="text-lg font-bold mb-4">Registros por Tipo</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[{name: 'Cargue', value: registros.filter(r => r.tipo === 'Cargue').length}, {name: 'Descargue', value: registros.filter(r => r.tipo === 'Descargue').length}]}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Bar dataKey="value" fill="#dc2626" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="mt-10 flex items-center gap-4">
+              <div className="h-px w-20 bg-gray-200"></div>
+              <span className="text-gray-400 font-bold tracking-widest text-xs uppercase">Modo Kiosko - Colcafé</span>
+              <div className="h-px w-20 bg-gray-200"></div>
             </div>
           </div>
         )}
 
-        {view === 'reportes' && (
-          <div className="max-w-7xl mx-auto p-4">
-            <button onClick={() => setView('admin')} className="mb-4 border-2 border-gray-300 rounded-full p-2 hover:bg-gray-100">
-              <ArrowLeft className="text-red-600" size={24} />
+        {(view === 'entrada' || view === 'salida') && (
+          <div className="max-w-6xl mx-auto w-full">
+            <button onClick={() => setView('menu')} className="mb-10 flex items-center gap-3 text-gray-400 hover:text-red-600 font-bold transition-colors">
+              <ArrowLeft size={32} /> <span className="text-2xl">VOLVER</span>
             </button>
-            <h2 className="text-2xl font-bold mb-4 text-center text-red-600 uppercase">Reportes de Cargue</h2>
             
-            <div className="h-96 bg-white p-4 rounded-lg shadow">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={registros.filter(r => r.status === 'FIN CARGUE')}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="muelle" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="tiempoCargue" fill="#8884d8" name="Tiempo Cargue (min)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {view === 'entrada' && (
-          <div className="h-full">
-            <button onClick={() => setView('menu')} className="mb-6 border-2 border-gray-300 rounded-full p-2 hover:bg-gray-100">
-              <ArrowLeft className="text-red-600" size={32} />
-            </button>
-            <h2 className="text-center text-2xl text-gray-600 font-semibold mb-8">INGRESE SU DOCUMENTO</h2>
-            
-            <div className="grid grid-cols-2 gap-16">
-              {/* Izquierda: Calculadora */}
-              <div className="border-2 border-gray-300 p-4 rounded-lg">
-                <div className="bg-gray-100 p-6 text-3xl font-bold text-right rounded mb-4 h-16">{cedula}</div>
-                <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              {/* Teclado Numérico */}
+              <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200 shadow-inner">
+                <h3 className="text-center text-xl font-bold text-gray-400 mb-6 uppercase tracking-widest">Ingrese Documento</h3>
+                <div className="bg-white p-8 text-5xl font-black text-center rounded-2xl mb-8 h-24 flex items-center justify-center border-4 border-gray-900 shadow-sm">{cedula}</div>
+                <div className="grid grid-cols-3 gap-4">
                   {[1,2,3,4,5,6,7,8,9].map(key => (
-                    <button key={key} onClick={() => handleKeypad(String(key))} className="bg-gray-200 py-6 text-2xl font-bold rounded hover:bg-gray-300">
+                    <button key={key} onClick={() => handleKeypad(String(key))} className="bg-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">
                       {key}
                     </button>
                   ))}
-                  <button onClick={() => handleKeypad('DEL')} className="bg-gray-300 py-6 text-2xl font-bold rounded hover:bg-gray-400 flex items-center justify-center"><Delete /></button>
-                  <button onClick={() => handleKeypad('0')} className="bg-gray-200 py-6 text-2xl font-bold rounded hover:bg-gray-300">0</button>
-                  <button onClick={() => handleKeypad('OK')} disabled={loading} className="bg-green-600 text-white py-6 text-2xl font-bold rounded hover:bg-green-700 disabled:opacity-50">OK</button>
+                  <button onClick={() => handleKeypad('DEL')} className="bg-red-50 text-red-600 py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-90 flex items-center justify-center"><Delete size={40} /></button>
+                  <button onClick={() => handleKeypad('0')} className="bg-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">0</button>
+                  <button onClick={() => handleKeypad('OK')} disabled={loading} className="bg-green-600 text-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-green-700 transition-all active:scale-90 disabled:opacity-50">OK</button>
                 </div>
               </div>
 
-              {/* Derecha: Información o Registro */}
-              <div className="space-y-6">
+              {/* Información / Formulario */}
+              <div className="flex flex-col justify-center">
                 {mostrarRegistro ? (
-                  <form onSubmit={registrarConductor} className="space-y-4">
-                    <h3 className="text-xl font-bold text-red-600">Registrar Nuevo Conductor</h3>
-                    <input name="nombre" placeholder="Nombre Completo" required className="w-full p-3 border rounded uppercase" />
-                    <input name="placa" placeholder="Placa Vehículo" required className="w-full p-3 border rounded uppercase" />
-                    <select name="empresa" required className="w-full p-3 border rounded uppercase">
-                      <option value="">Seleccione Empresa</option>
-                      {empresas.map(e => <option key={`${e.id}-${e.nombre}`} value={e.nombre}>{e.nombre}</option>)}
-                    </select>
-                    <button type="submit" disabled={loading} className="w-full bg-red-600 text-white py-3 rounded font-bold disabled:opacity-50">Registrar</button>
-                  </form>
-                ) : (
-                  <>
-                    <div>
-                      <label className="text-gray-500 font-semibold">NOMBRE COMPLETO</label>
-                      <div className="bg-gray-200 p-3 rounded h-12">{conductor?.nombre || ''}</div>
+                  <div className="bg-white p-10 rounded-3xl border-4 border-red-600 shadow-2xl">
+                    <h3 className="text-3xl font-black text-red-600 mb-8 uppercase tracking-tighter">Nuevo Conductor</h3>
+                    <form onSubmit={registrarConductor} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase">Nombre Completo</label>
+                        <input name="nombre" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase">Placa Vehículo</label>
+                        <input name="placa" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase">Empresa Transportadora</label>
+                        <select name="empresa" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors">
+                          <option value="">Seleccione Empresa</option>
+                          {empresas.map((e: any) => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+                        </select>
+                      </div>
+                      <button type="submit" disabled={loading} className="w-full bg-red-600 text-white py-6 rounded-2xl text-2xl font-black shadow-lg hover:bg-red-700 transition-all disabled:opacity-50">REGISTRAR CONDUCTOR</button>
+                    </form>
+                  </div>
+                ) : conductor ? (
+                  <div className="bg-white p-10 rounded-3xl border-4 border-gray-900 shadow-2xl space-y-8">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-green-100 p-3 rounded-full">
+                        <MonitorIcon className="text-green-600" size={32} />
+                      </div>
+                      <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Datos Confirmados</h3>
                     </div>
-                    <div>
-                      <label className="text-gray-500 font-semibold">PLACA VEHICULO</label>
-                      <div className="bg-gray-200 p-3 rounded h-12">{conductor?.placa || ''}</div>
-                    </div>
-                    <div>
-                      <label className="text-gray-500 font-semibold">EMPRESA TRANSPORTADORA</label>
-                      <div className="bg-gray-200 p-3 rounded h-12">{conductor?.empresa || ''}</div>
-                    </div>
-                    {conductor && (
-                      <>
-                        <p className="text-center text-gray-500 pt-4">ACTIVIDAD A REALIZAR?</p>
-                        <div className="flex gap-6">
-                          <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="flex-1 bg-green-400 text-black py-4 rounded-lg font-bold border-2 border-gray-400 disabled:opacity-50">CARGUE</button>
-                          <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="flex-1 bg-gray-200 text-black py-4 rounded-lg font-bold border-2 border-gray-400 disabled:opacity-50">DESCARGUE</button>
+                    
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <p className="text-xs font-bold text-gray-400 uppercase mb-1">Nombre</p>
+                        <p className="text-2xl font-black text-gray-900">{conductor.nombre}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                          <p className="text-xs font-bold text-gray-400 uppercase mb-1">Placa</p>
+                          <p className="text-2xl font-black text-gray-900">{conductor.placa}</p>
                         </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                          <p className="text-xs font-bold text-gray-400 uppercase mb-1">Empresa</p>
+                          <p className="text-xl font-black text-gray-900 truncate">{conductor.empresa}</p>
+                        </div>
+                      </div>
+                    </div>
 
-        {view === 'salida' && (
-          <div className="h-full">
-            <button onClick={() => setView('menu')} className="mb-6 border-2 border-gray-300 rounded-full p-2 hover:bg-gray-100">
-              <ArrowLeft className="text-red-600" size={32} />
-            </button>
-            <h2 className="text-center text-2xl text-gray-600 font-semibold mb-8">INGRESE SU DOCUMENTO PARA SALIDA</h2>
-            
-            <div className="flex justify-center">
-              {/* Calculadora */}
-              <div className="border-2 border-gray-300 p-4 rounded-lg w-full max-w-md">
-                <div className="bg-gray-100 p-6 text-3xl font-bold text-right rounded mb-4 h-16">{cedula}</div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[1,2,3,4,5,6,7,8,9].map(key => (
-                    <button key={key} onClick={() => handleKeypad(String(key))} className="bg-gray-200 py-6 text-2xl font-bold rounded hover:bg-gray-300">
-                      {key}
-                    </button>
-                  ))}
-                  <button onClick={() => handleKeypad('DEL')} className="bg-gray-300 py-6 text-2xl font-bold rounded hover:bg-gray-400 flex items-center justify-center"><Delete /></button>
-                  <button onClick={() => handleKeypad('0')} className="bg-gray-200 py-6 text-2xl font-bold rounded hover:bg-gray-300">0</button>
-                  <button onClick={() => handleKeypad('OK')} disabled={loading} className="bg-green-600 text-white py-6 text-2xl font-bold rounded hover:bg-green-700 disabled:opacity-50">OK</button>
-                </div>
+                    <div className="pt-6 space-y-4">
+                      <p className="text-center font-black text-gray-400 text-sm uppercase tracking-widest">¿Qué actividad realizará?</p>
+                      <div className="grid grid-cols-2 gap-6">
+                        <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="bg-green-600 text-white py-8 rounded-2xl text-3xl font-black shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50">CARGUE</button>
+                        <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="bg-gray-900 text-white py-8 rounded-2xl text-3xl font-black shadow-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50">DESCARGUE</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-20 text-center">
+                    <div className="bg-gray-100 p-10 rounded-full mb-6">
+                      <MonitorIcon className="text-gray-300" size={80} />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-400 uppercase tracking-widest">Esperando Documento...</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

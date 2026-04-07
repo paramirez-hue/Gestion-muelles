@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: conductores
+    // Document ID: {cedula}
+    // Fields:
+    //   - cedula: string (required)
+    //   - nombre: string (required)
+    //   - placa: string (required)
+    //   - empresa: string (required)
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: muelles
+    // Document ID: {muelleId}
+    // Fields:
+    //   - nombre: string (required)
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: empresas
+    // Document ID: {empresaId}
+    // Fields:
+    //   - nombre: string (required)
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: registros
+    // Document ID: {registroId}
+    // Fields:
+    //   - conductorId: string (required)
+    //   - muelle: string (optional)
+    //   - tipo: string (required, enum: Cargue, Descargue)
+    //   - status: string (required, enum: ESPERA, CARGANDO, FIN CARGUE)
+    //   - fecha: timestamp (required)
+    //   - entrada: timestamp (required)
+    //   - salida: timestamp (optional)
+    //   - tiempoCargue: number (optional)
+    //
+    // Collection: config
+    // Document ID: global
+    // Fields:
+    //   - logo: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "paramirez@serviciosnutresa.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidConductor(data) {
+      return data.keys().hasAll(['cedula', 'nombre', 'placa', 'empresa']) &&
+             data.cedula is string && data.cedula.size() > 0 &&
+             data.nombre is string && data.nombre.size() > 0 &&
+             data.placa is string && data.placa.size() > 0 &&
+             data.empresa is string && data.empresa.size() > 0;
+    }
+
+    function isValidRegistro(data) {
+      return data.keys().hasAll(['conductorId', 'tipo', 'status', 'fecha', 'entrada']) &&
+             data.conductorId is string &&
+             data.tipo in ['Cargue', 'Descargue'] &&
+             data.status in ['ESPERA', 'CARGANDO', 'FIN CARGUE'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /conductores/{cedula} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidConductor(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /muelles/{muelleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /empresas/{empresaId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /registros/{registroId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidRegistro(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /config/global {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}

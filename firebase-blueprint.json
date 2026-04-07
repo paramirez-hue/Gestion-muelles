@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "conductor": {
+      "title": "Conductor",
+      "description": "Información del conductor y su vehículo",
+      "type": "object",
+      "properties": {
+        "cedula": { "type": "string", "description": "Documento de identidad" },
+        "nombre": { "type": "string", "description": "Nombre completo" },
+        "placa": { "type": "string", "description": "Placa del vehículo" },
+        "empresa": { "type": "string", "description": "Empresa transportadora" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cedula", "nombre", "placa", "empresa"]
+    },
+    "muelle": {
+      "title": "Muelle",
+      "description": "Definición de un muelle de carga/descarga",
+      "type": "object",
+      "properties": {
+        "nombre": { "type": "string", "description": "Nombre del muelle (ej: Muelle 1)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nombre"]
+    },
+    "empresa": {
+      "title": "Empresa",
+      "description": "Empresas transportadoras autorizadas",
+      "type": "object",
+      "properties": {
+        "nombre": { "type": "string", "description": "Nombre de la empresa" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nombre"]
+    },
+    "registro": {
+      "title": "Registro",
+      "description": "Registro de entrada/salida de un conductor a un muelle",
+      "type": "object",
+      "properties": {
+        "conductorId": { "type": "string", "description": "ID del conductor (cedula)" },
+        "muelle": { "type": "string", "description": "Muelle asignado" },
+        "tipo": { "type": "string", "enum": ["Cargue", "Descargue"], "description": "Tipo de actividad" },
+        "status": { "type": "string", "enum": ["ESPERA", "CARGANDO", "FIN CARGUE"], "description": "Estado actual" },
+        "fecha": { "type": "string", "format": "date-time", "description": "Fecha del registro" },
+        "entrada": { "type": "string", "format": "date-time", "description": "Hora de entrada" },
+        "salida": { "type": "string", "format": "date-time", "description": "Hora de salida" },
+        "tiempoCargue": { "type": "number", "description": "Tiempo total en muelle en minutos" }
+      },
+      "required": ["conductorId", "tipo", "status", "fecha", "entrada"]
+    },
+    "config": {
+      "title": "Configuración",
+      "description": "Configuración global de la aplicación",
+      "type": "object",
+      "properties": {
+        "logo": { "type": "string", "description": "Logo corporativo en Base64" }
+      }
+    }
+  },
+  "firestore": {
+    "/conductores/{cedula}": {
+      "schema": "conductor",
+      "description": "Colección de conductores registrados"
+    },
+    "/muelles/{muelleId}": {
+      "schema": "muelle",
+      "description": "Colección de muelles configurados"
+    },
+    "/empresas/{empresaId}": {
+      "schema": "empresa",
+      "description": "Colección de empresas transportadoras"
+    },
+    "/registros/{registroId}": {
+      "schema": "registro",
+      "description": "Colección de registros de actividad"
+    },
+    "/config/global": {
+      "schema": "config",
+      "description": "Documento de configuración global"
+    }
+  }
+}
