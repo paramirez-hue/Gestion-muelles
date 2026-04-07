@@ -34,10 +34,12 @@ function MonitorPage() {
 
   const confirmarAsignacion = async (muelle: string) => {
     try {
-      await updateDoc(doc(db, 'registros', registroAAsignar), {
-        muelle,
-        status: 'CARGANDO'
+      await fetch('/api/asignar-muelle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registroId: registroAAsignar, muelle }),
       });
+      refreshData();
       setShowMuelleModal(false);
       setRegistroAAsignar(null);
     } catch (error) {
@@ -341,10 +343,12 @@ function KioskApp() {
     const activeRecord = registros.find((r: any) => r.conductorId === cedula && !r.salida);
     if (activeRecord) {
       try {
-        await updateDoc(doc(db, 'registros', activeRecord.id), {
-          salida: new Date().toISOString(),
-          status: 'FIN CARGUE'
+        await fetch('/api/registro-salida', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conductorId: cedula }),
         });
+        refreshData();
         toast.success('Salida registrada');
         setView('menu');
         setCedula('');

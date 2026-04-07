@@ -1,0 +1,18 @@
+{
+  "conductores": [],
+  "muelles": [
+    { "nombre": "MUELLE 1", "id": 1 },
+    { "nombre": "MUELLE 2", "id": 2 },
+    { "nombre": "MUELLE 3", "id": 3 }
+  ],
+  "empresas": [
+    { "nombre": "NUTRESA", "id": 1 },
+    { "nombre": "COLCAFÉ", "id": 2 },
+    { "nombre": "TRANSPORTES S.A.", "id": 3 },
+    { "nombre": "LOGÍSTICA INTEGRAL", "id": 4 }
+  ],
+  "registros": [],
+  "config": {
+    "logo": null
+  }
+}

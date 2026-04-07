@@ -21,6 +21,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetch('/api/empresas').then(res => res.json()),
         fetch('/api/config').then(res => res.json())
       ]);
+      console.log('Fetched Empresas:', empRes);
       setRegistros(regRes);
       setConductores(condRes);
       setMuelles(muelleRes);
