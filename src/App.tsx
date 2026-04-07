@@ -274,12 +274,16 @@ function AdminApp() {
 }
 
 function KioskApp() {
-  const { logo, conductores, empresas, addRegistro, addConductor, registros } = useApp();
+  const { logo, conductores, empresas, addRegistro, addConductor, registros, loading: appLoading } = useApp();
   const [view, setView] = useState<'menu' | 'entrada' | 'salida'>('menu');
   const [cedula, setCedula] = useState('');
   const [conductor, setConductor] = useState<any>(null);
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log('KioskApp - Empresas available:', empresas);
+  }, [empresas]);
 
   const handleKeypad = (val: string) => {
     if (val === 'DEL') setCedula(cedula.slice(0, -1));
@@ -441,7 +445,7 @@ function KioskApp() {
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase">Empresa Transportadora</label>
                         <select name="empresa" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors">
-                          <option value="">Seleccione Empresa</option>
+                          <option value="">{empresas.length === 0 ? 'Cargando empresas...' : 'Seleccione Empresa'}</option>
                           {empresas.map((e: any) => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
                       </div>
