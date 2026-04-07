@@ -289,10 +289,6 @@ function KioskApp() {
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    console.log('KioskApp - Empresas available:', empresas);
-  }, [empresas]);
-
   const handleKeypad = (val: string) => {
     if (val === 'DEL') setCedula(cedula.slice(0, -1));
     else if (val === 'OK') {

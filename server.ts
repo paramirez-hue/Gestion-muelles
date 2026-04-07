@@ -16,6 +16,11 @@ app.use(express.json());
 
 console.log('Database path:', DB_PATH);
 
+// Google Sheets Dummy (Safe)
+async function appendToSheet(range: string, values: any[]) {
+  console.log(`Sheet Sync (Simulated) - Range: ${range}, Data:`, values);
+}
+
 // Initialize DB if not exists
 if (!fs.existsSync(DB_PATH)) {
   console.log('Creating new database file...');
