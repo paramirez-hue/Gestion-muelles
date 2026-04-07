@@ -72,20 +72,8 @@ function MonitorPage() {
 function AdminApp() {
   const { registros, conductores, muelles, empresas, logo, updateLogo, addEmpresa, addMuelle, deleteMuelle } = useApp();
   const [view, setView] = useState<'menu' | 'dashboard' | 'reportes' | 'config'>('menu');
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsub();
-  }, []);
-
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      toast.error('Error al iniciar sesión');
-    }
-  };
+  const [password, setPassword] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,21 +102,25 @@ function AdminApp() {
     }
   };
 
-  const isAdmin = user?.email === "paramirez@serviciosnutresa.com";
-
-  if (!user || !isAdmin) {
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
           <h2 className="text-2xl font-bold mb-6">Acceso Administrativo</h2>
-          <p className="text-gray-600 mb-8">Debes iniciar sesión con tu cuenta autorizada para acceder al panel.</p>
+          <p className="text-gray-600 mb-8">Ingrese la clave de acceso para gestionar el sistema.</p>
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-4 border-2 border-gray-200 rounded-xl mb-6 text-center text-3xl font-bold focus:border-red-600 outline-none"
+            placeholder="••••"
+          />
           <button 
-            onClick={handleLogin}
-            className="w-full bg-red-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            onClick={() => password === '1234' ? setIsAuthorized(true) : toast.error('Clave incorrecta')}
+            className="w-full bg-red-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-red-700 transition-colors"
           >
-            Iniciar Sesión con Google
+            Entrar
           </button>
-          {user && !isAdmin && <p className="mt-4 text-red-500 font-semibold">Esta cuenta no tiene permisos de administrador.</p>}
           <Link to="/" className="block text-center mt-6 text-gray-500 underline">Volver al Kiosko</Link>
         </div>
       </div>
@@ -143,11 +135,7 @@ function AdminApp() {
           <h1 className="text-xl font-bold tracking-tight">Panel de Administración</h1>
         </div>
         <div className="flex items-center gap-6">
-          <div className="text-right hidden sm:block">
-            <p className="text-xs text-gray-400">Usuario</p>
-            <p className="text-sm font-medium">{user.email}</p>
-          </div>
-          <button onClick={() => auth.signOut()} className="flex items-center gap-2 bg-gray-800 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
+          <button onClick={() => setIsAuthorized(false)} className="flex items-center gap-2 bg-gray-800 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
             <LogOut size={18} />
             <span className="text-sm">Salir</span>
           </button>
