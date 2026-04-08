@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { ArrowLeft, Delete, LogOut, LayoutDashboard, FileText, Settings, Monitor as MonitorIcon } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -6,18 +6,58 @@ import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-do
 import { AppProvider, useApp } from './AppContext';
 import Monitor from './Monitor';
 
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-red-50 p-10 text-center">
+          <div className="bg-white p-8 rounded-3xl shadow-xl border-2 border-red-200 max-w-lg">
+            <h1 className="text-3xl font-black text-red-600 mb-4">¡Ups! Algo salió mal.</h1>
+            <p className="text-gray-600 mb-6 font-medium">La aplicación encontró un error inesperado. Por favor, intenta recargar la página.</p>
+            <div className="bg-gray-50 p-4 rounded-xl text-left overflow-auto max-h-40 mb-6">
+              <code className="text-xs text-red-500">{this.state.error?.toString()}</code>
+            </div>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition-all"
+            >
+              Recargar Aplicación
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <AppProvider>
-      <BrowserRouter>
-        <Toaster richColors position="top-center" />
-        <Routes>
-          <Route path="/" element={<KioskApp />} />
-          <Route path="/monitor" element={<MonitorPage />} />
-          <Route path="/admin" element={<AdminApp />} />
-        </Routes>
-      </BrowserRouter>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <BrowserRouter>
+          <Toaster richColors position="top-center" />
+          <Routes>
+            <Route path="/" element={<KioskApp />} />
+            <Route path="/monitor" element={<MonitorPage />} />
+            <Route path="/admin" element={<AdminApp />} />
+          </Routes>
+        </BrowserRouter>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 

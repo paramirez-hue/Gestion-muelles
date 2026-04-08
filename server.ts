@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { GoogleAuth } from 'google-auth-library';
+import { createServer as createViteServer } from 'vite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -217,10 +218,8 @@ app.delete('/api/registros/:id', (req, res) => {
   writeDb(db);
   res.json({ success: true, deletedId: id });
 });
-// ... (resto del código del servidor)
 
 // Vite middleware
-import { createServer as createViteServer } from 'vite';
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
