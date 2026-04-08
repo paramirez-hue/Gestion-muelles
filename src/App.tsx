@@ -5,7 +5,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { AppProvider, useApp } from './AppContext';
 import Monitor from './Monitor';
-import { db, updateDoc, doc, auth, signInWithPopup, googleProvider } from './firebase';
 
 export default function App() {
   return (
@@ -23,7 +22,7 @@ export default function App() {
 }
 
 function MonitorPage() {
-  const { registros, conductores, muelles, refreshData, finCargue, borrarRegistro, logo } = useApp();
+  const { registros, conductores, muelles, refreshData, finCargue, borrarRegistro, logo, asignarMuelle: asignarMuelleCtx } = useApp();
   const [showMuelleModal, setShowMuelleModal] = useState(false);
   const [registroAAsignar, setRegistroAAsignar] = useState<any>(null);
 
@@ -34,16 +33,11 @@ function MonitorPage() {
 
   const confirmarAsignacion = async (muelle: string) => {
     try {
-      await fetch('/api/asignar-muelle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ registroId: registroAAsignar, muelle }),
-      });
-      refreshData();
+      await asignarMuelleCtx(registroAAsignar, muelle);
       setShowMuelleModal(false);
       setRegistroAAsignar(null);
     } catch (error) {
-      toast.error('Error al asignar muelle');
+      // Error handled in context
     }
   };
 
@@ -282,7 +276,7 @@ function AdminApp() {
 }
 
 function KioskApp() {
-  const { logo, conductores, empresas, addRegistro, addConductor, registros, loading: appLoading } = useApp();
+  const { logo, conductores, empresas, addRegistro, addConductor, registros, loading: appLoading, registrarSalida } = useApp();
   const [view, setView] = useState<'menu' | 'entrada' | 'salida'>('menu');
   const [cedula, setCedula] = useState('');
   const [conductor, setConductor] = useState<any>(null);
@@ -351,17 +345,11 @@ function KioskApp() {
     const activeRecord = registros.find((r: any) => r.conductorId === cedula && !r.salida);
     if (activeRecord) {
       try {
-        await fetch('/api/registro-salida', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conductorId: cedula }),
-        });
-        refreshData();
-        toast.success('Salida registrada');
+        await registrarSalida(cedula);
         setView('menu');
         setCedula('');
       } catch (error) {
-        toast.error('Error al registrar salida');
+        // Error handled in context
       }
     } else {
       toast.error('No se encontró registro activo');
