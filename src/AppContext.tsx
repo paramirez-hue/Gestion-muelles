@@ -23,13 +23,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supabase.from('config').select('*').eq('key', 'logo').single()
       ]);
 
+      // Check for errors that might indicate missing tables
+      if (regRes.error || condRes.error || muelleRes.error || empRes.error) {
+        console.error('Supabase Fetch Error:', {
+          registros: regRes.error,
+          conductores: condRes.error,
+          muelles: muelleRes.error,
+          empresas: empRes.error
+        });
+        if (regRes.error?.code === 'PGRST116' || regRes.error?.message?.includes('relation') || regRes.error?.message?.includes('does not exist')) {
+          toast.error('Error: Las tablas no existen en Supabase. Por favor ejecuta el SQL proporcionado.');
+        } else {
+          toast.error('Error de conexión con Supabase. Revisa la consola para más detalles.');
+        }
+      }
+
       if (regRes.data) setRegistros(regRes.data);
       if (condRes.data) setConductores(condRes.data);
       if (muelleRes.data) setMuelles(muelleRes.data);
       if (empRes.data) setEmpresas(empRes.data);
       if (configRes.data) setLogo(configRes.data.value);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Unexpected error fetching data:', error);
     }
   };
 
@@ -59,20 +74,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .update({ status: 'FINALIZADO', fin_cargue: new Date().toISOString() })
         .eq('id', registroId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error finalizando cargue:', error);
+        throw error;
+      }
       toast.success('Cargue finalizado');
-    } catch (error) {
-      toast.error('Error al finalizar cargue');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo finalizar el cargue'}`);
     }
   };
 
   const borrarRegistro = async (registroId: string) => {
     try {
       const { error } = await supabase.from('registros').delete().eq('id', registroId);
-      if (error) throw error;
+      if (error) {
+        console.error('Error eliminando registro:', error);
+        throw error;
+      }
       toast.success('Registro eliminado');
-    } catch (error) {
-      toast.error('Error al eliminar registro');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo eliminar el registro'}`);
     }
   };
 
@@ -82,41 +103,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .from('config')
         .upsert({ key: 'logo', value: newLogo }, { onConflict: 'key' });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error actualizando logo:', error);
+        throw error;
+      }
       setLogo(newLogo);
       toast.success('Logo actualizado');
-    } catch (error) {
-      toast.error('Error al actualizar logo');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo actualizar el logo'}`);
     }
   };
 
   const addEmpresa = async (nombre: string) => {
     try {
       const { error } = await supabase.from('empresas').insert([{ nombre }]);
-      if (error) throw error;
+      if (error) {
+        console.error('Error añadiendo empresa:', error);
+        throw error;
+      }
       toast.success('Empresa añadida');
-    } catch (error) {
-      toast.error('Error al añadir empresa');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo añadir la empresa'}`);
     }
   };
 
   const addMuelle = async (nombre: string) => {
     try {
       const { error } = await supabase.from('muelles').insert([{ nombre }]);
-      if (error) throw error;
+      if (error) {
+        console.error('Error añadiendo muelle:', error);
+        throw error;
+      }
       toast.success('Muelle añadido');
-    } catch (error) {
-      toast.error('Error al añadir muelle');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo añadir el muelle'}`);
     }
   };
 
   const deleteMuelle = async (id: string) => {
     try {
       const { error } = await supabase.from('muelles').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error('Error eliminando muelle:', error);
+        throw error;
+      }
       toast.success('Muelle eliminado');
-    } catch (error) {
-      toast.error('Error al eliminar muelle');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo eliminar el muelle'}`);
     }
   };
 
@@ -127,20 +160,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         status: 'ESPERA',
         fecha: new Date().toISOString()
       }]);
-      if (error) throw error;
+      if (error) {
+        console.error('Error creando registro:', error);
+        throw error;
+      }
       toast.success('Registro exitoso');
-    } catch (error) {
-      toast.error('Error al crear registro');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo crear el registro'}`);
     }
   };
 
   const addConductor = async (conductor: any) => {
     try {
       const { error } = await supabase.from('conductores').insert([conductor]);
-      if (error) throw error;
+      if (error) {
+        console.error('Error registrando conductor:', error);
+        throw error;
+      }
       toast.success('Conductor registrado');
-    } catch (error) {
-      toast.error('Error al registrar conductor');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message || 'No se pudo registrar al conductor'}`);
     }
   };
 
