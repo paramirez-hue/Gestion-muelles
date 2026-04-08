@@ -368,7 +368,7 @@ function KioskApp() {
     setLoading(true);
     try {
       await addRegistro({
-        conductorId: conductor.cedula,
+        conductor_id: conductor.cedula,
         tipo,
       });
       setView('menu');
@@ -382,7 +382,7 @@ function KioskApp() {
 
   const handleSalida = async () => {
     if (!cedula) return;
-    const activeRecord = registros.find((r: any) => r.conductorId === cedula && !r.salida);
+    const activeRecord = registros.find((r: any) => r.conductor_id === cedula && !r.salida);
     if (activeRecord) {
       try {
         await registrarSalida(cedula);

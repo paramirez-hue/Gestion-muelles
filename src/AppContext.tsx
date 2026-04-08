@@ -69,9 +69,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const finCargue = async (registroId: string) => {
     try {
+      const registro = registros.find(r => r.id === registroId);
+      if (!registro || !registro.inicio_cargue) {
+        throw new Error('No se encontró el inicio de cargue');
+      }
+
+      const fin = new Date();
+      const inicio = new Date(registro.inicio_cargue);
+      const diffMs = fin.getTime() - inicio.getTime();
+      const tiempo_cargue = Math.round(diffMs / 60000); // minutos
+
       const { error } = await supabase
         .from('registros')
-        .update({ status: 'FINALIZADO', fin_cargue: new Date().toISOString() })
+        .update({ 
+          status: 'FINALIZADO', 
+          fin_cargue: fin.toISOString(),
+          tiempo_cargue
+        })
         .eq('id', registroId);
       
       if (error) {
@@ -191,7 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           salida: new Date().toISOString(), 
           status: 'SALIDA' 
         })
-        .eq('conductorId', conductorId)
+        .eq('conductor_id', conductorId)
         .is('salida', null);
       
       if (error) throw error;

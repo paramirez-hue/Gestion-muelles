@@ -26,7 +26,7 @@ export default function Monitor({ registros, conductores, finCargue, asignarMuel
           </thead>
           <tbody className="divide-y divide-gray-100">
             {registros.filter((r: any) => !r.salida).map((r: any) => {
-              const conductor = conductores.find((c: any) => c.id === r.conductorId);
+              const conductor = conductores.find((c: any) => c.cedula === r.conductor_id);
               return (
                 <tr key={`${r.id}-${r.fecha}`} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-gray-500">{new Date(r.fecha).toLocaleDateString()}</td>
@@ -34,7 +34,7 @@ export default function Monitor({ registros, conductores, finCargue, asignarMuel
                   <td className="px-6 py-4 text-gray-600">{conductor?.empresa || 'N/A'}</td>
                   <td className="px-6 py-4 font-mono text-gray-700">{conductor?.placa || 'N/A'}</td>
                   <td className="px-6 py-4 font-bold text-blue-600">{r.muelle || '-'}</td>
-                  <td className="px-6 py-4 text-gray-700">{r.tiempoCargue || '-'}</td>
+                  <td className="px-6 py-4 text-gray-700">{r.tiempo_cargue || '-'}</td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'CARGANDO' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
                       {r.status || 'ESPERA'}
