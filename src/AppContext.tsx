@@ -14,10 +14,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthReady, setIsAuthReady] = useState(true);
 
   const fetchData = async () => {
-    if (!supabase) {
-      console.warn('Supabase client not initialized. Please check your credentials.');
-      return;
-    }
     try {
       const [regRes, condRes, muelleRes, empRes, configRes] = await Promise.all([
         supabase.from('registros').select('*').order('created_at', { ascending: false }),
@@ -39,8 +35,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchData();
-
-    if (!supabase) return;
 
     // Real-time subscriptions
     const channels = [
