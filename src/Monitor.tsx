@@ -37,13 +37,19 @@ export default function Monitor({ registros, conductores, finCargue, asignarMuel
                   <td className="px-6 py-4 font-bold text-blue-600">{r.muelle || '-'}</td>
                   <td className="px-6 py-4 text-gray-700">{r.tiempo_cargue || '-'}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'CARGANDO' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      r.status === 'CARGANDO' ? 'bg-amber-100 text-amber-800' : 
+                      r.status === 'DESCARGANDO' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
                       {r.status || 'ESPERA'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center space-x-2">
-                    {r.status === 'CARGANDO' && (
-                      <button onClick={() => finCargue(r.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">FIN CARGUE</button>
+                    {(r.status === 'CARGANDO' || r.status === 'DESCARGANDO') && (
+                      <button onClick={() => finCargue(r.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">
+                        {r.status === 'DESCARGANDO' ? 'FIN DESCARGUE' : 'FIN CARGUE'}
+                      </button>
                     )}
                     {!r.muelle && (
                       <button onClick={() => asignarMuelle(r.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-all">ASIG. MUELLE</button>

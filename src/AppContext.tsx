@@ -89,12 +89,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .eq('id', registroId);
       
       if (error) {
-        console.error('Error finalizando cargue:', error);
+        console.error('Error finalizando operación:', error);
         throw error;
       }
-      toast.success('Cargue finalizado');
+      toast.success(registro.status === 'DESCARGANDO' ? 'Descargue finalizado' : 'Cargue finalizado');
     } catch (error: any) {
-      toast.error(`Error: ${error.message || 'No se pudo finalizar el cargue'}`);
+      toast.error(`Error: ${error.message || 'No se pudo finalizar la operación'}`);
     }
   };
 
@@ -218,11 +218,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const asignarMuelle = async (registroId: string, muelle: string) => {
     try {
+      const registro = registros.find(r => r.id === registroId);
+      const status = registro?.tipo === 'Descargue' ? 'DESCARGANDO' : 'CARGANDO';
+
       const { error } = await supabase
         .from('registros')
         .update({ 
           muelle, 
-          status: 'CARGANDO', 
+          status, 
           inicio_cargue: new Date().toISOString() 
         })
         .eq('id', registroId);
