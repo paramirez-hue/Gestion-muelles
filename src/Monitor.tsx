@@ -2,10 +2,18 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Monitor({ registros, conductores, finCargue, asignarMuelle, borrarRegistro, showMuelleModal, muelles, confirmarAsignacion, setShowMuelleModal, hideHeader = false }: any) {
+  const navigate = useNavigate();
   return (
     <div className="max-w-7xl mx-auto p-6">
       {!hideHeader && (
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => navigate('/admin')} 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600"
+            title="Volver al Panel"
+          >
+            <ArrowLeft size={28} />
+          </button>
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Monitor de Muelles</h2>
         </div>
       )}
