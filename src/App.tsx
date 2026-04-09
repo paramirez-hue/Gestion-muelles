@@ -195,27 +195,62 @@ function AdminApp() {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-              <h2 className="text-2xl font-bold mb-8">Estado de la Operación</h2>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: 'ESPERA', value: registros.filter((r: any) => r.status === 'ESPERA').length, fill: '#9ca3af' },
-                    { name: 'CARGANDO', value: registros.filter((r: any) => r.status === 'CARGANDO').length, fill: '#f59e0b' },
-                    { name: 'DESCARGANDO', value: registros.filter((r: any) => r.status === 'DESCARGANDO').length, fill: '#3b82f6' },
-                    { name: 'FINALIZADO', value: registros.filter((r: any) => r.status === 'FINALIZADO').length, fill: '#10b981' },
-                    { name: 'SALIDA', value: registros.filter((r: any) => r.status === 'SALIDA').length, fill: '#ef4444' }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                      cursor={{ fill: '#f9fafb' }}
-                    />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-2xl font-bold mb-8">Estado de la Operación</h2>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: 'ESPERA', value: registros.filter((r: any) => r.status === 'ESPERA').length, fill: '#9ca3af' },
+                      { name: 'CARGANDO', value: registros.filter((r: any) => r.status === 'CARGANDO').length, fill: '#f59e0b' },
+                      { name: 'DESCARGANDO', value: registros.filter((r: any) => r.status === 'DESCARGANDO').length, fill: '#3b82f6' },
+                      { name: 'FINALIZADO', value: registros.filter((r: any) => r.status === 'FINALIZADO').length, fill: '#10b981' },
+                      { name: 'SALIDA', value: registros.filter((r: any) => r.status === 'SALIDA').length, fill: '#ef4444' }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                        cursor={{ fill: '#f9fafb' }}
+                      />
+                      <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-2xl font-bold mb-8">Tiempo de Permanencia (min)</h2>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={
+                      registros
+                        .filter((r: any) => r.salida && r.fecha)
+                        .map((r: any) => {
+                          const conductor = conductores.find((c: any) => c.cedula === r.conductor_id);
+                          const inicio = new Date(r.fecha);
+                          const fin = new Date(r.salida);
+                          const duracion = Math.round((fin.getTime() - inicio.getTime()) / 60000);
+                          return {
+                            placa: conductor?.placa || 'N/A',
+                            minutos: duracion
+                          };
+                        })
+                        .sort((a, b) => a.minutos - b.minutos)
+                        .slice(-10) // Mostrar los últimos 10 o más relevantes
+                    }>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="placa" />
+                      <YAxis />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      />
+                      <Bar dataKey="minutos" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-xs text-gray-400 mt-4 text-center italic">Top 10 vehículos por tiempo total de permanencia (ordenado de menor a mayor)</p>
               </div>
             </div>
           </div>
@@ -223,11 +258,83 @@ function AdminApp() {
 
         {view === 'reportes' && (
           <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-            <h2 className="text-2xl font-bold mb-8">Reportes de Actividad</h2>
-            <p className="text-gray-500 mb-8">Aquí podrás descargar y visualizar los reportes detallados de la operación.</p>
-            {/* Implementación de tabla de reportes o descarga CSV */}
-            <div className="text-center p-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-              Próximamente: Exportación avanzada de datos
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-2xl font-bold">Histórico de Registros</h2>
+                <p className="text-gray-500">Listado completo de todas las operaciones realizadas.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const headers = ['Fecha', 'Conductor', 'Placa', 'Empresa', 'Tipo', 'Muelle', 'Inicio', 'Fin', 'Duración (min)', 'Status'];
+                  const csvData = registros.map((r: any) => {
+                    const conductor = conductores.find((c: any) => c.cedula === r.conductor_id);
+                    return [
+                      new Date(r.fecha).toLocaleDateString(),
+                      conductor?.nombre || 'N/A',
+                      conductor?.placa || 'N/A',
+                      conductor?.empresa || 'N/A',
+                      r.tipo,
+                      r.muelle || 'N/A',
+                      r.inicio_cargue ? new Date(r.inicio_cargue).toLocaleTimeString() : 'N/A',
+                      r.fin_cargue ? new Date(r.fin_cargue).toLocaleTimeString() : 'N/A',
+                      r.tiempo_cargue || '0',
+                      r.status
+                    ].join(',');
+                  });
+                  const blob = new Blob([[headers.join(','), ...csvData].join('\n')], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.setAttribute('hidden', '');
+                  a.setAttribute('href', url);
+                  a.setAttribute('download', `reporte_muelles_${new Date().toISOString().split('T')[0]}.csv`);
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-700 transition-all"
+              >
+                <FileText size={20} /> Exportar CSV
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 uppercase font-bold text-xs">
+                  <tr>
+                    <th className="px-4 py-4">Fecha</th>
+                    <th className="px-4 py-4">Conductor</th>
+                    <th className="px-4 py-4">Placa</th>
+                    <th className="px-4 py-4">Tipo</th>
+                    <th className="px-4 py-4">Muelle</th>
+                    <th className="px-4 py-4">Duración</th>
+                    <th className="px-4 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {registros.map((r: any) => {
+                    const conductor = conductores.find((c: any) => c.cedula === r.conductor_id);
+                    return (
+                      <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4 text-gray-500">{new Date(r.fecha).toLocaleDateString()}</td>
+                        <td className="px-4 py-4 font-medium text-gray-900">{conductor?.nombre || 'N/A'}</td>
+                        <td className="px-4 py-4 font-mono text-gray-600">{conductor?.placa || 'N/A'}</td>
+                        <td className="px-4 py-4">{r.tipo}</td>
+                        <td className="px-4 py-4 font-bold text-blue-600">{r.muelle || '-'}</td>
+                        <td className="px-4 py-4 text-gray-700">{r.tiempo_cargue ? `${r.tiempo_cargue} min` : '-'}</td>
+                        <td className="px-4 py-4">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-black ${
+                            r.status === 'SALIDA' ? 'bg-red-100 text-red-700' : 
+                            r.status === 'FINALIZADO' ? 'bg-emerald-100 text-emerald-700' : 
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
