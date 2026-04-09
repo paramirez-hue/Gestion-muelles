@@ -11,8 +11,9 @@ export default function Monitor({ registros, conductores, finCargue, asignarMuel
       )}
       
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600 uppercase font-semibold text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left min-w-[800px]">
+            <thead className="bg-gray-50 text-gray-600 uppercase font-semibold text-xs">
             <tr>
               <th className="px-6 py-4">Fecha</th>
               <th className="px-6 py-4">Conductor</th>
@@ -55,6 +56,7 @@ export default function Monitor({ registros, conductores, finCargue, asignarMuel
           </tbody>
         </table>
       </div>
+    </div>
       {showMuelleModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full">

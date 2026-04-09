@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { ArrowLeft, Delete, LogOut, LayoutDashboard, FileText, Settings, Monitor as MonitorIcon } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -6,58 +6,18 @@ import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-do
 import { AppProvider, useApp } from './AppContext';
 import Monitor from './Monitor';
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-red-50 p-10 text-center">
-          <div className="bg-white p-8 rounded-3xl shadow-xl border-2 border-red-200 max-w-lg">
-            <h1 className="text-3xl font-black text-red-600 mb-4">¡Ups! Algo salió mal.</h1>
-            <p className="text-gray-600 mb-6 font-medium">La aplicación encontró un error inesperado. Por favor, intenta recargar la página.</p>
-            <div className="bg-gray-50 p-4 rounded-xl text-left overflow-auto max-h-40 mb-6">
-              <code className="text-xs text-red-500">{this.state.error?.toString()}</code>
-            </div>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition-all"
-            >
-              Recargar Aplicación
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AppProvider>
-        <BrowserRouter>
-          <Toaster richColors position="top-center" />
-          <Routes>
-            <Route path="/" element={<KioskApp />} />
-            <Route path="/monitor" element={<MonitorPage />} />
-            <Route path="/admin" element={<AdminApp />} />
-          </Routes>
-        </BrowserRouter>
-      </AppProvider>
-    </ErrorBoundary>
+    <AppProvider>
+      <BrowserRouter>
+        <Toaster richColors position="top-center" />
+        <Routes>
+          <Route path="/" element={<KioskApp />} />
+          <Route path="/monitor" element={<MonitorPage />} />
+          <Route path="/admin" element={<AdminApp />} />
+        </Routes>
+      </BrowserRouter>
+    </AppProvider>
   );
 }
 
@@ -83,9 +43,9 @@ function MonitorPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-red-600 p-4 shadow-lg flex items-center gap-6">
-        {logo && <img src={logo} alt="Logo" className="h-12 bg-white p-1 rounded-full" />}
-        <h1 className="text-white text-2xl font-bold uppercase tracking-wide">Monitor de Muelles en Tiempo Real</h1>
+      <header className="bg-red-600 p-4 shadow-lg flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+        {logo && <img src={logo} alt="Logo" className="h-10 md:h-12 bg-white p-1 rounded-full" />}
+        <h1 className="text-white text-lg md:text-2xl font-bold uppercase tracking-wide text-center sm:text-left">Monitor de Muelles en Tiempo Real</h1>
       </header>
       <div className="flex-grow">
         <Monitor 
@@ -180,30 +140,30 @@ function AdminApp() {
 
       <main className="max-w-7xl mx-auto p-8">
         {view === 'menu' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <button onClick={() => setView('dashboard')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <button onClick={() => setView('dashboard')} className="flex flex-col items-center justify-center bg-white p-6 md:p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
               <div className="bg-green-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <LayoutDashboard className="text-green-600" size={40} />
+                <LayoutDashboard className="text-green-600" size={32} md:size={40} />
               </div>
-              <span className="font-bold text-xl text-gray-800">Dashboard</span>
+              <span className="font-bold text-lg md:text-xl text-gray-800">Dashboard</span>
             </button>
-            <button onClick={() => setView('reportes')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <button onClick={() => setView('reportes')} className="flex flex-col items-center justify-center bg-white p-6 md:p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
               <div className="bg-purple-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="text-purple-600" size={40} />
+                <FileText className="text-purple-600" size={32} md:size={40} />
               </div>
-              <span className="font-bold text-xl text-gray-800">Reportes</span>
+              <span className="font-bold text-lg md:text-xl text-gray-800">Reportes</span>
             </button>
-            <button onClick={() => setView('config')} className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <button onClick={() => setView('config')} className="flex flex-col items-center justify-center bg-white p-6 md:p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
               <div className="bg-blue-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <Settings className="text-blue-600" size={40} />
+                <Settings className="text-blue-600" size={32} md:size={40} />
               </div>
-              <span className="font-bold text-xl text-gray-800">Configuración</span>
+              <span className="font-bold text-lg md:text-xl text-gray-800">Configuración</span>
             </button>
-            <Link to="/monitor" className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <Link to="/monitor" className="flex flex-col items-center justify-center bg-white p-6 md:p-10 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
               <div className="bg-red-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <MonitorIcon className="text-red-600" size={40} />
+                <MonitorIcon className="text-red-600" size={32} md:size={40} />
               </div>
-              <span className="font-bold text-xl text-gray-800">Ver Monitor</span>
+              <span className="font-bold text-lg md:text-xl text-gray-800">Ver Monitor</span>
             </Link>
           </div>
         )}
@@ -247,13 +207,13 @@ function AdminApp() {
 
         {view === 'config' && (
           <div className="max-w-4xl mx-auto space-y-10">
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-bold mb-6">Identidad Visual</h2>
-              <div className="flex items-center gap-8">
-                <div className="h-32 w-32 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-center overflow-hidden">
-                  {logo ? <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain p-4" /> : <span className="text-gray-400 text-xs">Sin Logo</span>}
+            <div className="bg-white p-4 md:p-8 rounded-3xl border border-gray-200 shadow-sm">
+              <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Identidad Visual</h2>
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+                <div className="h-24 w-24 md:h-32 md:w-32 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-center overflow-hidden">
+                  {logo ? <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain p-2 md:p-4" /> : <span className="text-gray-400 text-xs">Sin Logo</span>}
                 </div>
-                <div className="flex-grow">
+                <div className="flex-grow w-full md:w-auto">
                   <label className="block text-sm font-bold text-gray-700 mb-2">Cambiar Logo Corporativo</label>
                   <input 
                     type="file" 
@@ -266,12 +226,12 @@ function AdminApp() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-                <h2 className="text-xl font-bold mb-6">Empresas Transportadoras</h2>
-                <div className="flex gap-2 mb-6">
-                  <input id="nuevaEmpresaAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nueva empresa" />
-                  <button onClick={handleAddEmpresa} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Empresas Transportadoras</h2>
+                <div className="flex gap-2 mb-4 md:mb-6">
+                  <input id="nuevaEmpresaAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-xs md:text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nueva empresa" />
+                  <button onClick={handleAddEmpresa} className="bg-red-600 text-white px-4 md:px-6 py-3 rounded-xl font-bold text-xs md:text-sm hover:bg-red-700 transition-colors">Añadir</button>
                 </div>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                   {empresas.length === 0 ? (
@@ -286,11 +246,11 @@ function AdminApp() {
                 </div>
               </div>
 
-              <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-                <h2 className="text-xl font-bold mb-6">Muelles de Operación</h2>
-                <div className="flex gap-2 mb-6">
-                  <input id="nuevoMuelleAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nuevo muelle" />
-                  <button onClick={handleAddMuelle} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Añadir</button>
+              <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-200 shadow-sm">
+                <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Muelles de Operación</h2>
+                <div className="flex gap-2 mb-4 md:mb-6">
+                  <input id="nuevoMuelleAdmin" className="flex-grow p-3 border border-gray-200 rounded-xl uppercase text-xs md:text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nuevo muelle" />
+                  <button onClick={handleAddMuelle} className="bg-red-600 text-white px-4 md:px-6 py-3 rounded-xl font-bold text-xs md:text-sm hover:bg-red-700 transition-colors">Añadir</button>
                 </div>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                   {muelles.length === 0 ? (
@@ -398,33 +358,33 @@ function KioskApp() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="w-full bg-red-600 p-6 flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-8">
-          {logo && <img src={logo} alt="Logo" className="h-16 bg-white p-2 rounded-2xl shadow-sm" />}
-          <h1 className="text-white text-3xl font-black uppercase tracking-tighter">Sistema de Gestión de Muelles</h1>
+      <header className="w-full bg-red-600 p-4 md:p-6 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-4 md:gap-8">
+          {logo && <img src={logo} alt="Logo" className="h-12 md:h-16 bg-white p-2 rounded-2xl shadow-sm" />}
+          <h1 className="text-white text-xl md:text-3xl font-black uppercase tracking-tighter">Sistema de Gestión de Muelles</h1>
         </div>
         <Link to="/admin" className="text-red-500 hover:text-white opacity-10 hover:opacity-100 transition-all p-2">
           <Settings size={24} />
         </Link>
       </header>
 
-      <main className="flex-grow flex flex-col p-8">
+      <main className="flex-grow flex flex-col p-4 md:p-8">
         {view === 'menu' && (
-          <div className="flex-grow flex flex-col items-center justify-center gap-10">
+          <div className="flex-grow flex flex-col items-center justify-center gap-6 md:gap-10">
             <div className="text-center">
-              <h2 className="text-6xl font-black text-gray-900 mb-2 tracking-tighter">BIENVENIDOS</h2>
-              <p className="text-xl text-gray-500 font-medium">Seleccione la operación a realizar</p>
+              <h2 className="text-4xl md:text-6xl font-black text-gray-900 mb-2 tracking-tighter">BIENVENIDOS</h2>
+              <p className="text-lg md:text-xl text-gray-500 font-medium">Seleccione la operación a realizar</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-5xl">
               <button 
                 onClick={() => { setView('entrada'); setCedula(''); setConductor(null); }} 
-                className="bg-gray-900 text-white p-16 rounded-3xl text-4xl font-black hover:bg-gray-800 shadow-2xl transition-all hover:scale-105 active:scale-95"
+                className="bg-gray-900 text-white p-8 md:p-16 rounded-3xl text-2xl md:text-4xl font-black hover:bg-gray-800 shadow-2xl transition-all hover:scale-105 active:scale-95"
               >
                 ENTRADA A PLANTA
               </button>
               <button 
                 onClick={() => { setView('salida'); setCedula(''); setConductor(null); }} 
-                className="bg-white text-gray-900 p-16 rounded-3xl text-4xl font-black border-8 border-gray-900 hover:bg-gray-50 shadow-2xl transition-all hover:scale-105 active:scale-95"
+                className="bg-white text-gray-900 p-8 md:p-16 rounded-3xl text-2xl md:text-4xl font-black border-4 md:border-8 border-gray-900 hover:bg-gray-50 shadow-2xl transition-all hover:scale-105 active:scale-95"
               >
                 SALIDA DE FÁBRICA
               </button>
@@ -443,78 +403,78 @@ function KioskApp() {
               <ArrowLeft size={32} /> <span className="text-2xl">VOLVER</span>
             </button>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 lg:gap-16">
               {/* Teclado Numérico */}
-              <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200 shadow-inner">
-                <h3 className="text-center text-xl font-bold text-gray-400 mb-6 uppercase tracking-widest">Ingrese Documento</h3>
-                <div className="bg-white p-8 text-5xl font-black text-center rounded-2xl mb-8 h-24 flex items-center justify-center border-4 border-gray-900 shadow-sm">{cedula}</div>
-                <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-50 p-4 md:p-8 rounded-3xl border border-gray-200 shadow-inner">
+                <h3 className="text-center text-lg md:text-xl font-bold text-gray-400 mb-4 md:mb-6 uppercase tracking-widest">Ingrese Documento</h3>
+                <div className="bg-white p-4 md:p-8 text-3xl md:text-5xl font-black text-center rounded-2xl mb-6 md:mb-8 h-20 md:h-24 flex items-center justify-center border-4 border-gray-900 shadow-sm">{cedula}</div>
+                <div className="grid grid-cols-3 gap-2 md:gap-4">
                   {[1,2,3,4,5,6,7,8,9].map(key => (
-                    <button key={key} onClick={() => handleKeypad(String(key))} className="bg-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">
+                    <button key={key} onClick={() => handleKeypad(String(key))} className="bg-white py-4 md:py-8 text-2xl md:text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">
                       {key}
                     </button>
                   ))}
-                  <button onClick={() => handleKeypad('DEL')} className="bg-red-50 text-red-600 py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-90 flex items-center justify-center"><Delete size={40} /></button>
-                  <button onClick={() => handleKeypad('0')} className="bg-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">0</button>
-                  <button onClick={() => handleKeypad('OK')} disabled={loading} className="bg-green-600 text-white py-8 text-3xl font-black rounded-2xl shadow-sm hover:bg-green-700 transition-all active:scale-90 disabled:opacity-50">OK</button>
+                  <button onClick={() => handleKeypad('DEL')} className="bg-red-50 text-red-600 py-4 md:py-8 text-2xl md:text-3xl font-black rounded-2xl shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-90 flex items-center justify-center"><Delete size={32} /></button>
+                  <button onClick={() => handleKeypad('0')} className="bg-white py-4 md:py-8 text-2xl md:text-3xl font-black rounded-2xl shadow-sm hover:bg-gray-900 hover:text-white transition-all active:scale-90 border border-gray-100">0</button>
+                  <button onClick={() => handleKeypad('OK')} disabled={loading} className="bg-green-600 text-white py-4 md:py-8 text-2xl md:text-3xl font-black rounded-2xl shadow-sm hover:bg-green-700 transition-all active:scale-90 disabled:opacity-50">OK</button>
                 </div>
               </div>
 
               {/* Información / Formulario */}
               <div className="flex flex-col justify-center">
                 {mostrarRegistro ? (
-                  <div className="bg-white p-10 rounded-3xl border-4 border-red-600 shadow-2xl">
-                    <h3 className="text-3xl font-black text-red-600 mb-8 uppercase tracking-tighter">Nuevo Conductor</h3>
-                    <form onSubmit={registrarConductor} className="space-y-6">
+                  <div className="bg-white p-6 md:p-10 rounded-3xl border-4 border-red-600 shadow-2xl">
+                    <h3 className="text-2xl md:text-3xl font-black text-red-600 mb-6 md:mb-8 uppercase tracking-tighter">Nuevo Conductor</h3>
+                    <form onSubmit={registrarConductor} className="space-y-4 md:space-y-6">
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase">Nombre Completo</label>
-                        <input name="nombre" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
+                        <input name="nombre" required className="w-full p-4 md:p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-lg md:text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase">Placa Vehículo</label>
-                        <input name="placa" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
+                        <input name="placa" required className="w-full p-4 md:p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-lg md:text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase">Empresa Transportadora</label>
-                        <select name="empresa" required className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors">
+                        <select name="empresa" required className="w-full p-4 md:p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-lg md:text-xl font-bold uppercase focus:border-red-600 outline-none transition-colors">
                           <option value="">{empresas.length === 0 ? 'Cargando empresas...' : 'Seleccione Empresa'}</option>
                           {empresas.map((e: any) => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
                         </select>
                       </div>
-                      <button type="submit" disabled={loading} className="w-full bg-red-600 text-white py-6 rounded-2xl text-2xl font-black shadow-lg hover:bg-red-700 transition-all disabled:opacity-50">REGISTRAR CONDUCTOR</button>
+                      <button type="submit" disabled={loading} className="w-full bg-red-600 text-white py-4 md:py-6 rounded-2xl text-xl md:text-2xl font-black shadow-lg hover:bg-red-700 transition-all disabled:opacity-50">REGISTRAR CONDUCTOR</button>
                     </form>
                   </div>
                 ) : conductor ? (
-                  <div className="bg-white p-10 rounded-3xl border-4 border-gray-900 shadow-2xl space-y-8">
+                  <div className="bg-white p-6 md:p-10 rounded-3xl border-4 border-gray-900 shadow-2xl space-y-6 md:space-y-8">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="bg-green-100 p-3 rounded-full">
-                        <MonitorIcon className="text-green-600" size={32} />
+                        <MonitorIcon className="text-green-600" size={24} md:size={32} />
                       </div>
-                      <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Datos Confirmados</h3>
+                      <h3 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Datos Confirmados</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 gap-6">
-                      <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                    <div className="grid grid-cols-1 gap-4 md:gap-6">
+                      <div className="bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100">
                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Nombre</p>
-                        <p className="text-2xl font-black text-gray-900">{conductor.nombre}</p>
+                        <p className="text-xl md:text-2xl font-black text-gray-900">{conductor.nombre}</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                      <div className="grid grid-cols-2 gap-4 md:gap-6">
+                        <div className="bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100">
                           <p className="text-xs font-bold text-gray-400 uppercase mb-1">Placa</p>
-                          <p className="text-2xl font-black text-gray-900">{conductor.placa}</p>
+                          <p className="text-xl md:text-2xl font-black text-gray-900">{conductor.placa}</p>
                         </div>
-                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <div className="bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100">
                           <p className="text-xs font-bold text-gray-400 uppercase mb-1">Empresa</p>
-                          <p className="text-xl font-black text-gray-900 truncate">{conductor.empresa}</p>
+                          <p className="text-lg md:text-xl font-black text-gray-900 truncate">{conductor.empresa}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-6 space-y-4">
+                    <div className="pt-4 md:pt-6 space-y-4">
                       <p className="text-center font-black text-gray-400 text-sm uppercase tracking-widest">¿Qué actividad realizará?</p>
-                      <div className="grid grid-cols-2 gap-6">
-                        <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="bg-green-600 text-white py-8 rounded-2xl text-3xl font-black shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50">CARGUE</button>
-                        <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="bg-gray-900 text-white py-8 rounded-2xl text-3xl font-black shadow-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50">DESCARGUE</button>
+                      <div className="grid grid-cols-2 gap-4 md:gap-6">
+                        <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="bg-green-600 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50">CARGUE</button>
+                        <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="bg-gray-900 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50">DESCARGUE</button>
                       </div>
                     </div>
                   </div>
