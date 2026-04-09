@@ -471,11 +471,29 @@ function KioskApp() {
                     </div>
 
                     <div className="pt-4 md:pt-6 space-y-4">
-                      <p className="text-center font-black text-gray-400 text-sm uppercase tracking-widest">¿Qué actividad realizará?</p>
-                      <div className="grid grid-cols-2 gap-4 md:gap-6">
-                        <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="bg-green-600 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50">CARGUE</button>
-                        <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="bg-gray-900 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50">DESCARGUE</button>
-                      </div>
+                      {registros.some((r: any) => r.conductor_id === conductor.cedula && !r.salida) ? (
+                        <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-2xl text-center">
+                          <p className="text-amber-800 font-black text-xl uppercase mb-2">Registro Activo Detectado</p>
+                          <p className="text-amber-700 font-bold">Usted ya se encuentra en proceso de {
+                            registros.find((r: any) => r.conductor_id === conductor.cedula && !r.salida)?.tipo === 'Descargue' ? 'DESCARGUE' : 'CARGUE'
+                          }.</p>
+                          <p className="text-amber-600 text-sm mt-2">Debe registrar su salida antes de iniciar una nueva operación.</p>
+                          <button 
+                            onClick={() => { setView('menu'); setCedula(''); setConductor(null); }}
+                            className="mt-6 w-full bg-amber-600 text-white py-4 rounded-xl font-black hover:bg-amber-700 transition-all"
+                          >
+                            ENTENDIDO
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-center font-black text-gray-400 text-sm uppercase tracking-widest">¿Qué actividad realizará?</p>
+                          <div className="grid grid-cols-2 gap-4 md:gap-6">
+                            <button onClick={() => registrarMuelle('Cargue')} disabled={loading} className="bg-green-600 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50">CARGUE</button>
+                            <button onClick={() => registrarMuelle('Descargue')} disabled={loading} className="bg-gray-900 text-white py-6 md:py-8 rounded-2xl text-2xl md:text-3xl font-black shadow-lg hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50">DESCARGUE</button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (
