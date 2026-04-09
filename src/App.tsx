@@ -175,21 +175,48 @@ function AdminApp() {
         )}
 
         {view === 'dashboard' && (
-          <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-            <h2 className="text-2xl font-bold mb-8">Estadísticas de Operación</h2>
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'Cargue', value: registros.filter((r: any) => r.tipo === 'Cargue').length },
-                  { name: 'Descargue', value: registros.filter((r: any) => r.tipo === 'Descargue').length }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#dc2626" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <p className="text-sm font-bold text-gray-400 uppercase mb-1">En Espera</p>
+                <p className="text-3xl font-black text-gray-900">{registros.filter((r: any) => r.status === 'ESPERA').length}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <p className="text-sm font-bold text-gray-400 uppercase mb-1">En Proceso</p>
+                <p className="text-3xl font-black text-blue-600">{registros.filter((r: any) => r.status === 'CARGANDO' || r.status === 'DESCARGANDO').length}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <p className="text-sm font-bold text-gray-400 uppercase mb-1">Finalizados</p>
+                <p className="text-3xl font-black text-emerald-600">{registros.filter((r: any) => r.status === 'FINALIZADO').length}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <p className="text-sm font-bold text-gray-400 uppercase mb-1">Salida Total</p>
+                <p className="text-3xl font-black text-red-600">{registros.filter((r: any) => r.status === 'SALIDA').length}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+              <h2 className="text-2xl font-bold mb-8">Estado de la Operación</h2>
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'ESPERA', value: registros.filter((r: any) => r.status === 'ESPERA').length, fill: '#9ca3af' },
+                    { name: 'CARGANDO', value: registros.filter((r: any) => r.status === 'CARGANDO').length, fill: '#f59e0b' },
+                    { name: 'DESCARGANDO', value: registros.filter((r: any) => r.status === 'DESCARGANDO').length, fill: '#3b82f6' },
+                    { name: 'FINALIZADO', value: registros.filter((r: any) => r.status === 'FINALIZADO').length, fill: '#10b981' },
+                    { name: 'SALIDA', value: registros.filter((r: any) => r.status === 'SALIDA').length, fill: '#ef4444' }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      cursor={{ fill: '#f9fafb' }}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
