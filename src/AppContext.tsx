@@ -219,7 +219,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const asignarMuelle = async (registroId: string, muelle: string) => {
     try {
       const registro = registros.find(r => r.id === registroId);
-      const status = registro?.tipo === 'Descargue' ? 'DESCARGANDO' : 'CARGANDO';
+      // Normalizar el tipo para evitar errores de mayúsculas/minúsculas
+      const tipoNormalizado = registro?.tipo?.trim().toLowerCase();
+      const status = tipoNormalizado === 'descargue' ? 'DESCARGANDO' : 'CARGANDO';
 
       const { error } = await supabase
         .from('registros')
